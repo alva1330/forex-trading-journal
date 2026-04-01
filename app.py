@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from calculations import calculate_pips, calculate_profit
-from data_manager import load_trades, add_trade
+from data_manager import load_trades, add_trade, list_accounts, create_account
 
 # Configuration
 st.set_page_config(page_title="Forex Terminal Journal", page_icon="📈", layout="wide")
@@ -17,11 +17,38 @@ local_css("styles.css")
 st.title("📟 FOREX TERMINAL JOURNAL v1.0")
 st.markdown("---")
 
-# Initialize Data (Now handled by GSheets connection)
+# --- Sidebar: Account Management ---
+with st.sidebar:
+    st.header("🏢 ACCOUNT MANAGEMENT")
+    
+    # List existing accounts
+    accounts = list_accounts()
+    
+    # Active Account Selection
+    if "active_account" not in st.session_state:
+        st.session_state.active_account = accounts[0]
+        
+    active_acc = st.selectbox("SELECT ACTIVE ACCOUNT", accounts, index=accounts.index(st.session_state.active_account))
+    st.session_state.active_account = active_acc
+    
+    # Create New Account
+    with st.expander("➕ CREATE NEW ACCOUNT"):
+        new_acc_name = st.text_input("New Account Name")
+        if st.button("CREATE"):
+            if new_acc_name and new_acc_name not in accounts:
+                if create_account(new_acc_name):
+                    st.success(f"ACCOUNT '{new_acc_name}' CREATED!")
+                    st.session_state.active_account = new_acc_name
+                    st.rerun()
+            else:
+                st.error("INVALID NAME OR ALREADY EXISTS.")
+
+    st.markdown("---")
 
 # --- Sidebar: Add New Trade ---
 with st.sidebar:
     st.header("➕ LOG NEW TRADE")
+    st.caption(f"LOGGING TO: {st.session_state.active_account}")
     with st.form("trade_form", clear_on_submit=True):
         pair = st.text_input("Pair (e.g. GBP/USD)", value="EUR/USD")
         trade_type = st.selectbox("Action", ["Buy", "Sell"])
@@ -39,11 +66,12 @@ with st.sidebar:
         if submit:
             pips = calculate_pips(pair, entry_price, exit_price, trade_type)
             profit = calculate_profit(pips, lot_size)
-            add_trade(pair, trade_type, entry_price, exit_price, lot_size, pips, profit, notes)
+            add_trade(st.session_state.active_account, pair, trade_type, entry_price, exit_price, lot_size, pips, profit, notes)
             st.success(f"TRADE RECORDED: {pips} PIPS / ${profit} USD")
+            st.rerun()
 
 # --- Main Dashboard ---
-df = load_trades()
+df = load_trades(st.session_state.active_account)
 
 # Stats calculation
 if not df.empty:

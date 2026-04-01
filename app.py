@@ -13,19 +13,18 @@ def local_css(file_name):
 
 local_css("styles.css")
 
+# --- Data Initialization ---
+accounts = list_accounts()
+if "active_account" not in st.session_state:
+    st.session_state.active_account = accounts[0]
+
 # --- App Header ---
 st.title("📟 FOREX TERMINAL JOURNAL v1.0")
+st.markdown(f'<div class="status-indicator">[ SESSION: {st.session_state.active_account} ]</div>', unsafe_allow_html=True)
 st.markdown("---")
 
 # --- Sidebar: Account Management ---
 with st.sidebar.expander("🏢 ACCOUNT MANAGEMENT", expanded=False):
-    # List existing accounts
-    accounts = list_accounts()
-    
-    # Active Account Selection
-    if "active_account" not in st.session_state:
-        st.session_state.active_account = accounts[0]
-        
     # Safer index lookup to prevent "ValueError: ... is not in list"
     try:
         current_index = accounts.index(st.session_state.active_account)

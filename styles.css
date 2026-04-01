@@ -44,3 +44,17 @@ div[data-testid="stExpander"] {
     background-color: #121212;
     border: 1px solid #333;
 }
+
+/* Status Indicator at top right */
+.status-indicator {
+    padding: 10px 15px;
+    border: 1px solid #00ff41;
+    color: #00ff41;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    background-color: rgba(0, 255, 65, 0.05);
+    box-shadow: 0 0 10px rgba(0, 255, 65, 0.1);
+    float: right;
+    margin-top: -65px;
+}

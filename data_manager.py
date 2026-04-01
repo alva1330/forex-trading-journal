@@ -11,10 +11,12 @@ COLUMNS = ["Timestamp", "Pair", "Type", "Entry", "Exit", "Lot Size", "Pips", "Pr
 def load_trades():
     """Load trades from Google Sheet."""
     try:
-        # Read the entire sheet. Assuming the sheet has a name (URL provided in secrets)
-        return conn.read(ttl="10m") # Cache for 10 minutes
+        # Set ttl to 0 to always get the freshest data from the cloud
+        df = conn.read(ttl=0)
+        if df is None or df.empty:
+             return pd.DataFrame(columns=COLUMNS)
+        return df
     except Exception as e:
-        # Return empty DataFrame with columns if sheet is empty or error
         return pd.DataFrame(columns=COLUMNS)
 
 def add_trade(pair, trade_type, entry, exit, lot_size, pips, profit, notes):
@@ -31,16 +33,16 @@ def add_trade(pair, trade_type, entry, exit, lot_size, pips, profit, notes):
         "Notes": notes
     }
     
-    # Load current history
+    # Load freshest history
     df = load_trades()
     
-    # Check if df is empty (no headers)
+    # Ensure COLUMNS are present
     if df.empty:
         df = pd.DataFrame(columns=COLUMNS)
 
-    # Append new trade
+    # Append new trade to the list
     new_df = pd.concat([df, pd.DataFrame([new_trade])], ignore_index=True)
     
-    # Update Google Sheet
+    # Push the full updated list back to Google Sheets
     conn.update(data=new_df)
     return new_df

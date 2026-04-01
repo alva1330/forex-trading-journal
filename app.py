@@ -28,7 +28,13 @@ with st.sidebar:
     if "active_account" not in st.session_state:
         st.session_state.active_account = accounts[0]
         
-    active_acc = st.selectbox("SELECT ACTIVE ACCOUNT", accounts, index=accounts.index(st.session_state.active_account))
+    # Safer index lookup to prevent "ValueError: ... is not in list"
+    try:
+        current_index = accounts.index(st.session_state.active_account)
+    except ValueError:
+        current_index = 0
+        
+    active_acc = st.selectbox("SELECT ACTIVE ACCOUNT", accounts, index=current_index)
     st.session_state.active_account = active_acc
     
     # Create New Account

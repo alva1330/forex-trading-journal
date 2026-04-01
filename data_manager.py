@@ -8,6 +8,7 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 
 COLUMNS = ["Timestamp", "Pair", "Type", "Entry", "Exit", "Lot Size", "Pips", "Profit", "Notes"]
 
+@st.cache_data(ttl=10)
 def list_accounts():
     """List all accounts (worksheets) in the Google Sheet."""
     try:
@@ -15,7 +16,9 @@ def list_accounts():
         client = conn.client
         # The spreadsheet is defined in st.secrets [connections.gsheets]
         url = st.secrets["connections"]["gsheets"]["spreadsheet"]
+        # RE-OPEN the spreadsheet to force a metadata refresh
         sh = client.open_by_url(url)
+        # Fetch fresh titles
         return [ws.title for ws in sh.worksheets()]
     except Exception as e:
         return ["Sheet1"]
@@ -26,6 +29,8 @@ def create_account(name):
         df_headers = pd.DataFrame(columns=COLUMNS)
         # Create a new worksheet and initialize with headers
         conn.create(worksheet=name, data=df_headers)
+        # Clear the cache so the new account shows up immediately
+        list_accounts.clear()
         return True
     except Exception as e:
         st.error(f"SYSTEM ERROR: UNABLE TO CREATE ACCOUNT '{name}': {e}")

@@ -1,60 +1,75 @@
-/* Professional Forex Terminal CSS */
-@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
+/* Professional Forex Terminal CSS - Stitch Design System */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+
+:root {
+    --bg-deep: #0a0b0d;
+    --surface: #14161a;
+    --border: #2a2e35;
+    --text: #ffffff;
+    --text-dim: #8b949e;
+    --neon-green: #00e676;
+    --neon-red: #ff1744;
+    --neon-glow: rgba(0, 230, 118, 0.3);
+    --neon-glow-red: rgba(255, 23, 68, 0.3);
+}
 
 html, body, [data-testid="stAppViewContainer"] {
-    background-color: #0a0a0a;
-    font-family: 'Roboto Mono', monospace;
-    color: #e0e0e0;
+    background-color: var(--bg-deep);
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text);
 }
 
+/* Glassmorphism Sidebar */
 [data-testid="stSidebar"] {
-    background-color: #121212;
-    border-right: 1px solid #333;
+    background: rgba(20, 22, 26, 0.7) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+/* Neon Metric Cards */
 .stMetric {
-    background-color: #1a1a1a;
-    padding: 15px;
-    border-radius: 5px;
-    border: 1px solid #333;
+    background-color: var(--surface);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    transition: all 0.3s ease;
 }
 
-.stDataFrame {
-    border: 1px solid #333;
+.neon-success .stMetric {
+    border: 1px solid var(--neon-green) !important;
+    box-shadow: 0 0 15px var(--neon-glow) !important;
+}
+
+.neon-danger .stMetric {
+    border: 1px solid var(--neon-red) !important;
+    box-shadow: 0 0 15px var(--neon-glow-red) !important;
 }
 
 h1, h2, h3 {
-    color: #00ff41; /* Terminal Green */
+    color: var(--neon-green);
     text-transform: uppercase;
     letter-spacing: 2px;
 }
 
-.profit-pos {
-    color: #00ff41 !important;
-    font-weight: bold;
+/* Mobile Friendly Buttons */
+.stButton > button {
+    min-height: 48px;
+    padding: 12px 24px;
+    font-size: 1rem;
+    border-radius: 6px;
 }
 
-.profit-neg {
-    color: #ff3131 !important;
-    font-weight: bold;
-}
-
-/* Custom Table Styling */
-div[data-testid="stExpander"] {
-    background-color: #121212;
-    border: 1px solid #333;
-}
-
-/* Status Indicator at top right */
+/* Status Indicator */
 .status-indicator {
     padding: 10px 15px;
-    border: 1px solid #00ff41;
-    color: #00ff41;
-    font-family: 'Roboto Mono', monospace;
+    border: 1px solid var(--neon-green);
+    color: var(--neon-green);
+    font-family: 'JetBrains Mono', monospace;
     font-size: 0.8rem;
     text-transform: uppercase;
-    background-color: rgba(0, 255, 65, 0.05);
-    box-shadow: 0 0 10px rgba(0, 255, 65, 0.1);
+    background-color: rgba(0, 230, 118, 0.05);
+    box-shadow: 0 0 10px var(--neon-glow);
     float: right;
     margin-top: -65px;
 }

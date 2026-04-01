@@ -90,11 +90,25 @@ if not df.empty:
     wins = len(df[df["Profit"] > 0])
     win_rate = (wins / total_trades) * 100 if total_trades > 0 else 0
     
-    # Dashboard Metrics
+    # Dashboard Metrics with Neon Glow
     m1, m2, m3 = st.columns(3)
-    m1.metric("TOTAL TRADES", total_trades)
-    m2.metric("WIN RATE", f"{win_rate:.1f}%")
-    m3.metric("NET P/L (USD)", f"${total_profit:,.2f}")
+    
+    with m1:
+        st.markdown('<div class="neon-success">', unsafe_allow_html=True)
+        st.metric("TOTAL TRADES", total_trades)
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+    with m2:
+        glow_class = "neon-success" if win_rate >= 50 else "neon-danger"
+        st.markdown(f'<div class="{glow_class}">', unsafe_allow_html=True)
+        st.metric("WIN RATE", f"{win_rate:.1f}%")
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+    with m3:
+        glow_class = "neon-success" if total_profit >= 0 else "neon-danger"
+        st.markdown(f'<div class="{glow_class}">', unsafe_allow_html=True)
+        st.metric("NET P/L (USD)", f"${total_profit:,.2f}")
+        st.markdown('</div>', unsafe_allow_html=True)
 else:
     st.info("NO TRADE DATA DETECTED. INITIALIZE LOG IN SIDEBAR.")
 

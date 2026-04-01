@@ -1,0 +1,46 @@
+/* Professional Forex Terminal CSS */
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
+
+html, body, [data-testid="stAppViewContainer"] {
+    background-color: #0a0a0a;
+    font-family: 'Roboto Mono', monospace;
+    color: #e0e0e0;
+}
+
+[data-testid="stSidebar"] {
+    background-color: #121212;
+    border-right: 1px solid #333;
+}
+
+.stMetric {
+    background-color: #1a1a1a;
+    padding: 15px;
+    border-radius: 5px;
+    border: 1px solid #333;
+}
+
+.stDataFrame {
+    border: 1px solid #333;
+}
+
+h1, h2, h3 {
+    color: #00ff41; /* Terminal Green */
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.profit-pos {
+    color: #00ff41 !important;
+    font-weight: bold;
+}
+
+.profit-neg {
+    color: #ff3131 !important;
+    font-weight: bold;
+}
+
+/* Custom Table Styling */
+div[data-testid="stExpander"] {
+    background-color: #121212;
+    border: 1px solid #333;
+}

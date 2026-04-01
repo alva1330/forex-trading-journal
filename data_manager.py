@@ -8,18 +8,26 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 
 COLUMNS = ["Timestamp", "Pair", "Type", "Entry", "Exit", "Lot Size", "Pips", "Profit", "Notes"]
 
+import gspread
+
 @st.cache_data(ttl=5)
 def list_accounts():
-    """List all accounts (worksheets) in the Google Sheet."""
-    # Access the underlying client to list all worksheets
-    client = conn.client
-    # Get the URL from secrets
-    url = st.secrets["connections"]["gsheets"]["spreadsheet"]
-    # Force a fresh open of the spreadsheet
-    sh = client.open_by_url(url)
-    # Get all worksheet names
-    titles = [ws.title for ws in sh.worksheets()]
-    return titles
+    """List all accounts (worksheets) in the Google Sheet using direct gspread access."""
+    try:
+        # Get credentials dictionary from Streamlit secrets
+        creds_dict = dict(st.secrets["connections"]["gsheets"])
+        
+        # Remove the spreadsheet URL from the dict so gspread doesn't complain about extra keys
+        url = creds_dict.pop("spreadsheet", None)
+        
+        # Authorize directly with gspread for the metadata list
+        gc = gspread.service_account_from_dict(creds_dict)
+        sh = gc.open_by_url(url)
+        
+        return [ws.title for ws in sh.worksheets()]
+    except Exception as e:
+        # Fallback to Sheet1 if listing fails to keep the app alive
+        return ["Sheet1"]
 
 def create_account(name):
     """Create a new account (worksheet) with headers."""
@@ -27,7 +35,7 @@ def create_account(name):
         df_headers = pd.DataFrame(columns=COLUMNS)
         # Create a new worksheet and initialize with headers
         conn.create(worksheet=name, data=df_headers)
-        # Clear the cache
+        # Clear all caches
         st.cache_data.clear()
         return True
     except Exception as e:

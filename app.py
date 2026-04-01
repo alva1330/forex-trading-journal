@@ -18,9 +18,7 @@ st.title("📟 FOREX TERMINAL JOURNAL v1.0")
 st.markdown("---")
 
 # --- Sidebar: Account Management ---
-with st.sidebar:
-    st.header("🏢 ACCOUNT MANAGEMENT")
-    
+with st.sidebar.expander("🏢 ACCOUNT MANAGEMENT", expanded=False):
     # List existing accounts
     accounts = list_accounts()
     
@@ -38,22 +36,19 @@ with st.sidebar:
     st.session_state.active_account = active_acc
     
     # Create New Account
-    with st.expander("➕ CREATE NEW ACCOUNT"):
-        new_acc_name = st.text_input("New Account Name")
-        if st.button("CREATE"):
-            if new_acc_name and new_acc_name not in accounts:
-                if create_account(new_acc_name):
-                    st.success(f"ACCOUNT '{new_acc_name}' CREATED!")
-                    st.session_state.active_account = new_acc_name
-                    st.rerun()
-            else:
-                st.error("INVALID NAME OR ALREADY EXISTS.")
-
     st.markdown("---")
+    new_acc_name = st.text_input("New Account Name")
+    if st.button("CREATE"):
+        if new_acc_name and new_acc_name not in accounts:
+            if create_account(new_acc_name):
+                st.success(f"ACCOUNT '{new_acc_name}' CREATED!")
+                st.session_state.active_account = new_acc_name
+                st.rerun()
+        else:
+            st.error("INVALID NAME OR ALREADY EXISTS.")
 
 # --- Sidebar: Add New Trade ---
-with st.sidebar:
-    st.header("➕ LOG NEW TRADE")
+with st.sidebar.expander("➕ LOG NEW TRADE", expanded=False):
     st.caption(f"LOGGING TO: {st.session_state.active_account}")
     with st.form("trade_form", clear_on_submit=True):
         pair = st.text_input("Pair (e.g. GBP/USD)", value="EUR/USD")

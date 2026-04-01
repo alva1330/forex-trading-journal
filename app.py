@@ -11,12 +11,12 @@ def local_css(file_name):
     with open(file_name) as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-local_css("styles.css")
-
 # --- Data Initialization ---
-accounts = list_accounts()
+if "accounts" not in st.session_state:
+    st.session_state.accounts = list_accounts()
+
 if "active_account" not in st.session_state:
-    st.session_state.active_account = accounts[0]
+    st.session_state.active_account = st.session_state.accounts[0]
 
 # --- App Header ---
 st.title("📟 FOREX TERMINAL JOURNAL v1.0")
@@ -25,11 +25,20 @@ st.markdown("---")
 
 # --- Sidebar: Account Management ---
 with st.sidebar.expander("🏢 ACCOUNT MANAGEMENT", expanded=False):
+    # Action: Manual Sync
+    if st.button("SYNC NOW (Refresh Tabs)"):
+        st.cache_data.clear()
+        st.session_state.accounts = list_accounts()
+        st.rerun()
+
+    accounts = st.session_state.accounts
+    
     # Safer index lookup to prevent "ValueError: ... is not in list"
     try:
         current_index = accounts.index(st.session_state.active_account)
     except ValueError:
         current_index = 0
+        st.session_state.active_account = accounts[0]
         
     active_acc = st.selectbox("SELECT ACTIVE ACCOUNT", accounts, index=current_index)
     st.session_state.active_account = active_acc
@@ -41,6 +50,7 @@ with st.sidebar.expander("🏢 ACCOUNT MANAGEMENT", expanded=False):
         if new_acc_name and new_acc_name not in accounts:
             if create_account(new_acc_name):
                 st.success(f"ACCOUNT '{new_acc_name}' CREATED!")
+                st.session_state.accounts = list_accounts()
                 st.session_state.active_account = new_acc_name
                 st.rerun()
         else:

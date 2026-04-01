@@ -10,7 +10,7 @@ COLUMNS = ["Timestamp", "Pair", "Type", "Entry", "Exit", "Lot Size", "Pips", "Pr
 
 import gspread
 
-@st.cache_data(ttl=5)
+@st.cache_data(ttl=120)
 def list_accounts():
     """List all accounts (worksheets) in the Google Sheet using direct gspread access."""
     try:

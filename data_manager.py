@@ -8,20 +8,18 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 
 COLUMNS = ["Timestamp", "Pair", "Type", "Entry", "Exit", "Lot Size", "Pips", "Profit", "Notes"]
 
-@st.cache_data(ttl=10)
+@st.cache_data(ttl=5)
 def list_accounts():
     """List all accounts (worksheets) in the Google Sheet."""
-    try:
-        # Access the underlying client to list all worksheets
-        client = conn.client
-        # The spreadsheet is defined in st.secrets [connections.gsheets]
-        url = st.secrets["connections"]["gsheets"]["spreadsheet"]
-        # RE-OPEN the spreadsheet to force a metadata refresh
-        sh = client.open_by_url(url)
-        # Fetch fresh titles
-        return [ws.title for ws in sh.worksheets()]
-    except Exception as e:
-        return ["Sheet1"]
+    # Access the underlying client to list all worksheets
+    client = conn.client
+    # Get the URL from secrets
+    url = st.secrets["connections"]["gsheets"]["spreadsheet"]
+    # Force a fresh open of the spreadsheet
+    sh = client.open_by_url(url)
+    # Get all worksheet names
+    titles = [ws.title for ws in sh.worksheets()]
+    return titles
 
 def create_account(name):
     """Create a new account (worksheet) with headers."""
@@ -29,11 +27,11 @@ def create_account(name):
         df_headers = pd.DataFrame(columns=COLUMNS)
         # Create a new worksheet and initialize with headers
         conn.create(worksheet=name, data=df_headers)
-        # Clear the cache so the new account shows up immediately
-        list_accounts.clear()
+        # Clear the cache
+        st.cache_data.clear()
         return True
     except Exception as e:
-        st.error(f"SYSTEM ERROR: UNABLE TO CREATE ACCOUNT '{name}': {e}")
+        st.error(f"SYSTEM ERROR: {e}")
         return False
 
 def load_trades(worksheet_name="Sheet1"):

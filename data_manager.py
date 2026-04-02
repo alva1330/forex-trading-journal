@@ -29,6 +29,66 @@ def list_accounts():
         # Fallback to Sheet1 if listing fails to keep the app alive
         return ["Sheet1"]
 
+def get_starting_balance(name):
+    """Fetch the starting balance for an account from the _metadata worksheet."""
+    try:
+        # Get credentials dictionary from Streamlit secrets
+        creds_dict = dict(st.secrets["connections"]["gsheets"])
+        url = creds_dict.pop("spreadsheet", None)
+        
+        # Authorize directly with gspread
+        gc = gspread.service_account_from_dict(creds_dict)
+        sh = gc.open_by_url(url)
+        
+        # Open or create _metadata worksheet
+        try:
+            ws_meta = sh.worksheet("_metadata")
+        except gspread.exceptions.WorksheetNotFound:
+            ws_meta = sh.add_worksheet(title="_metadata", rows="100", cols="2")
+            ws_meta.append_row(["AccountName", "StartingBalance"])
+        
+        # Find the account's balance
+        records = ws_meta.get_all_records()
+        for row in records:
+            if row["AccountName"] == name:
+                return float(row["StartingBalance"])
+        return 0.0
+    except Exception as e:
+        return 0.0
+
+def set_starting_balance(name, balance):
+    """Set the starting balance for an account in the _metadata worksheet."""
+    try:
+        # Get credentials dictionary from Streamlit secrets
+        creds_dict = dict(st.secrets["connections"]["gsheets"])
+        url = creds_dict.pop("spreadsheet", None)
+        
+        # Authorize directly with gspread
+        gc = gspread.service_account_from_dict(creds_dict)
+        sh = gc.open_by_url(url)
+        
+        # Open or create _metadata worksheet
+        try:
+            ws_meta = sh.worksheet("_metadata")
+        except gspread.exceptions.WorksheetNotFound:
+            ws_meta = sh.add_worksheet(title="_metadata", rows="100", cols="2")
+            ws_meta.append_row(["AccountName", "StartingBalance"])
+        
+        # Check if record exists
+        cell = ws_meta.find(name)
+        if cell:
+            # Update existing balance
+            ws_meta.update_cell(cell.row, 2, balance)
+        else:
+            # Add new record
+            ws_meta.append_row([name, balance])
+            
+        st.cache_data.clear()
+        return True
+    except Exception as e:
+        st.error(f"SYSTEM ERROR: {e}")
+        return False
+
 def delete_account(name):
     """Delete an account (worksheet) from the Google Sheet."""
     try:

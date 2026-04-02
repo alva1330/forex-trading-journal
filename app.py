@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 from calculations import calculate_pips, calculate_profit
-from data_manager import load_trades, add_trade, list_accounts, create_account, delete_account
+from data_manager import load_trades, add_trade, list_accounts, create_account, delete_account, get_starting_balance, set_starting_balance
 
 # Configuration
 st.set_page_config(page_title="Forex Terminal Journal", page_icon="📈", layout="wide")
@@ -19,6 +20,9 @@ if "accounts" not in st.session_state:
 
 if "active_account" not in st.session_state:
     st.session_state.active_account = st.session_state.accounts[0]
+
+if "starting_balance" not in st.session_state:
+    st.session_state.starting_balance = get_starting_balance(st.session_state.active_account)
 
 # --- App Header ---
 st.title("📟 FOREX TERMINAL JOURNAL v1.0")
@@ -75,6 +79,17 @@ with st.sidebar.expander("🏢 ACCOUNT MANAGEMENT", expanded=False):
             st.info("SWITCH ACCOUNTS TO DELETE OTHERS.")
     else:
         st.info("CANNOT DELETE THE LAST ACCOUNT.")
+    
+    # Starting Balance Section
+    st.markdown("---")
+    st.caption("💼 BALANCE SETTINGS")
+    current_sb = get_starting_balance(st.session_state.active_account)
+    sb_input = st.number_input("Starting Capital ($)", value=float(current_sb), step=100.0)
+    if st.button("SAVE BALANCE"):
+        if set_starting_balance(st.session_state.active_account, sb_input):
+            st.session_state.starting_balance = sb_input
+            st.success("BALANCE SAVED!")
+            st.rerun()
 
 # --- Sidebar: Add New Trade ---
 with st.sidebar.expander("➕ LOG NEW TRADE", expanded=False):
@@ -105,8 +120,14 @@ df = load_trades(st.session_state.active_account)
 
 # Stats calculation
 if not df.empty:
+    # Sort for chart
+    df_chart = df.copy().sort_values("Timestamp")
+    start_bal = float(st.session_state.starting_balance)
+    df_chart["Cumulative"] = start_bal + df_chart["Profit"].cumsum()
+    
     total_trades = len(df)
     total_profit = df["Profit"].sum()
+    current_bal = start_bal + total_profit
     wins = len(df[df["Profit"] > 0])
     win_rate = (wins / total_trades) * 100 if total_trades > 0 else 0
     
@@ -116,9 +137,32 @@ if not df.empty:
     m1.metric("TOTAL TRADES", total_trades)
     m2.metric("WIN RATE", f"{win_rate:.1f}%")
     # Color based on profit
-    p_class = "profit-pos" if total_profit >= 0 else "profit-neg"
-    m3.markdown(f'<div style="text-align: center;"><label style="font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: 1.5px;">NET P/L (USD)</label><br/><span class="{p_class}" style="font-family: Orbitron, sans-serif; font-size: 2rem;">${total_profit:,.2f}</span></div>', unsafe_allow_html=True)
+    p_class = "profit-pos" if current_bal >= start_bal else "profit-neg"
+    m3.markdown(f'<div style="text-align: center;"><label style="font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: 1.5px;">ACCOUNT BALANCE</label><br/><span class="{p_class}" style="font-family: Orbitron, sans-serif; font-size: 2rem;">${current_bal:,.2f}</span></div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
+
+    # --- Feature 1: Equity Curve ---
+    st.markdown("### 📈 EQUITY GROWTH CURVE")
+    with st.container():
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        fig = px.line(
+            df_chart, 
+            x="Timestamp", 
+            y="Cumulative", 
+            template="plotly_dark",
+            labels={"Cumulative": "Balance ($)", "Timestamp": "Time"}
+        )
+        # Style the line with Neon Green
+        fig.update_traces(line_color="#00ffa3", line_width=3)
+        fig.update_layout(
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            margin=dict(l=10, r=10, t=10, b=10),
+            xaxis=dict(showgrid=False),
+            yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.05)")
+        )
+        st.plotly_chart(fig, use_container_width=True, theme=None)
+        st.markdown('</div>', unsafe_allow_html=True)
 else:
     st.info("NO TRADE DATA DETECTED. INITIALIZE LOG IN SIDEBAR.")
 

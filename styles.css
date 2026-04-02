@@ -1,155 +1,165 @@
 /* 
    ========================================
-   PREMIUM CYBER-GRID THEME v2.0
+   LUMINA JOURNAL DESIGN SYSTEM v1.0
    ========================================
 */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Orbitron:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;600;700&display=swap');
 
-/* --- Root Variables for Constant Glow --- */
 :root {
-    --neon-green: #00ffa3;
-    --neon-red: #ff4b4b;
-    --glass-bg: rgba(20, 20, 20, 0.7);
-    --glass-border: rgba(255, 255, 255, 0.1);
-    --grid-color: rgba(0, 255, 163, 0.03);
+    --primary: #10b981;      /* Emerald */
+    --secondary: #ef4444;    /* Rose Red */
+    --bg-main: #0a0c0c;
+    --card-bg: #111616;
+    --card-border: rgba(255, 255, 255, 0.05);
+    --text-dim: #94a3b8;
+    --text-main: #f8fafc;
 }
 
-/* --- Base Body & Grid Background --- */
+/* --- App Container Overrides --- */
 html, body, [data-testid="stAppViewContainer"] {
-    background: radial-gradient(circle at 50% 50%, #111111 0%, #050505 100%) !important;
-    background-image: 
-        linear-gradient(var(--grid-color) 1px, transparent 1px),
-        linear-gradient(90deg, var(--grid-color) 1px, transparent 1px) !important;
-    background-size: 30px 30px !important;
-    font-family: 'Inter', sans-serif;
-    color: #f0f0f0;
+    background-color: var(--bg-main) !important;
+    background-image: none !important;
+    font-family: 'Inter', sans-serif !important;
+    color: var(--text-main);
 }
 
-/* --- Sidebar Glass --- */
+/* --- Sidebar Styling --- */
 [data-testid="stSidebar"] {
-    background-color: rgba(10, 10, 10, 0.95);
-    border-right: 1px solid var(--glass-border);
+    background-color: #0d1111 !important;
+    border-right: 1px solid var(--card-border);
 }
 
-/* --- Glassmorphism Cards --- */
-.glass-card {
-    background: var(--glass-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--glass-border);
-    border-radius: 12px;
-    padding: 24px;
-    margin-bottom: 24px;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-    transition: transform 0.3s ease, border 0.3s ease;
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
+    color: var(--text-dim) !important;
+    font-size: 0.9rem;
 }
 
-.glass-card:hover {
-    border: 1px solid rgba(0, 255, 163, 0.3);
+/* --- Typography --- */
+h1, h2, h3 {
+    font-family: 'Outfit', sans-serif !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.5px;
 }
 
-/* --- Metric Styling --- */
-[data-testid="stMetricValue"] {
-    font-family: 'Orbitron', sans-serif;
-    font-weight: 700;
-    color: var(--neon-green) !important;
-    font-size: 2rem !important;
-    text-shadow: 0 0 10px rgba(0, 255, 163, 0.4);
-}
-
-[data-testid="stMetricLabel"] {
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: #ffffff !important; /* Increased contrast from #888 */
-    font-size: 0.8rem !important;
-}
-
-/* --- Sidebar Text Legibility --- */
-[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
-[data-testid="stSidebar"] label,
-[data-testid="stSidebar"] div {
-    color: #ffffff !important;
-}
-
-/* --- Expander Header Legibility --- */
-.stExpander div[data-testid="stExpanderHeader"] p {
-    color: #ffffff !important;
-    font-weight: 700 !important;
-    font-family: 'Orbitron', sans-serif !important;
-    letter-spacing: 1px;
-}
-
-/* --- Caption/Info Text --- */
-.stCaption, st.info, .stMarkdown em {
-    color: #cccccc !important;
-}
-
-/* --- Indicators --- */
 h1 {
-    font-family: 'Orbitron', sans-serif;
+    color: var(--text-main) !important;
+    font-size: 1.75rem !important;
+    margin-bottom: 2rem !important;
+}
+
+/* --- Layout Cards --- */
+.lumina-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* --- Custom Metric Styling --- */
+.metric-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.metric-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.metric-value {
+    font-size: 1.5rem;
     font-weight: 700;
-    letter-spacing: 4px;
-    color: var(--neon-green) !important;
-    text-shadow: 0 0 15px rgba(0, 255, 163, 0.6);
-    margin-bottom: 30px !important;
+    font-family: 'Outfit', sans-serif;
 }
 
-h3 {
-    font-size: 1.1rem !important;
-    letter-spacing: 2px;
-    color: #fff !important;
+.metric-pos { color: var(--primary); }
+.metric-neg { color: var(--secondary); }
+
+/* --- Badge Styling --- */
+.badge {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
 }
 
-/* --- Data Table --- */
+.badge-long {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--primary);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.badge-short {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--secondary);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+/* --- Table Styles --- */
 .stDataFrame {
-    background: var(--glass-bg);
+    border: 1px solid var(--card-border);
     border-radius: 12px;
 }
 
-/* --- Indicators --- */
-.status-indicator {
-    padding: 8px 16px;
-    border: 1px solid var(--neon-green);
-    color: var(--neon-green);
-    font-family: 'Orbitron', sans-serif;
-    font-size: 0.75rem;
-    background: rgba(0, 255, 163, 0.05);
-    border-radius: 4px;
-    float: right;
-    margin-top: -70px;
-    box-shadow: 0 0 10px rgba(0, 255, 163, 0.2);
+/* --- Buttons & Forms --- */
+.stButton button {
+    background-color: var(--primary) !important;
+    color: #000 !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    border: none !important;
+    padding: 0.5rem 1rem !important;
+    transition: all 0.2s ease !important;
 }
 
-/* --- Red Profit --- */
-.profit-neg {
-    color: var(--neon-red) !important;
-    text-shadow: 0 0 10px rgba(255, 75, 75, 0.3);
+.stButton button:hover {
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.4) !important;
+    transform: translateY(-1px) !important;
 }
 
-/* --- Green Profit --- */
-.profit-pos {
-    color: var(--neon-green) !important;
-    text-shadow: 0 0 10px rgba(0, 255, 163, 0.3);
+/* Secondary Button Reset */
+.stButton button[kind="secondary"] {
+    background-color: transparent !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--card-border) !important;
 }
 
 /* --- Expander Styling --- */
 .stExpander {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid var(--glass-border) !important;
-    border-radius: 8px !important;
+    background: transparent !important;
+    border: 1px solid var(--card-border) !important;
+    border-radius: 12px !important;
 }
 
-/* --- Custom Scrollbar --- */
-::-webkit-scrollbar {
-    width: 8px;
+/* --- App Header Status Badge --- */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--card-border);
+    border-radius: 100px;
+    font-size: 0.8rem;
+    font-weight: 500;
 }
-::-webkit-scrollbar-track {
-    background: #050505;
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--primary);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--primary);
 }
-::-webkit-scrollbar-thumb {
-    background: #222;
-    border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-    background: var(--neon-green);
-}
+
+/* --- Remove Streamlit Branding --- */
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}

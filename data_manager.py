@@ -111,29 +111,6 @@ def delete_account(name):
         st.error(f"SYSTEM ERROR: {e}")
         return False
 
-def update_trade_record(account_name, timestamp, updated_data):
-    """Update an existing trade row in Google Sheets identified by its timestamp."""
-    try:
-        # Get credentials dictionary from Streamlit secrets
-        creds_dict = dict(st.secrets["connections"]["gsheets"])
-        url = creds_dict.pop("spreadsheet", None)
-        
-        # Authorize directly with gspread
-        gc = gspread.service_account_from_dict(creds_dict)
-        sh = gc.open_by_url(url)
-        ws = sh.worksheet(account_name)
-        
-        # Find the row with the unique timestamp
-        cell = ws.find(str(timestamp), in_column=1)
-        if cell:
-            # Overwrite the row with updated data
-            ws.update(range_name=f"A{cell.row}:I{cell.row}", values=[updated_data])
-            return True
-        return False
-    except Exception as e:
-        st.error(f"SYSTEM ERROR UPDATING TRADE: {e}")
-        return False
-
 def create_account(name):
     """Create a new account (worksheet) with headers."""
     try:
@@ -185,3 +162,33 @@ def add_trade(worksheet_name, pair, trade_type, entry, exit, lot_size, pips, pro
     # Push the full updated list back to the specific tab
     conn.update(worksheet=worksheet_name, data=new_df)
     return new_df
+
+def update_trade(worksheet_name, index, updated_data):
+    """Update a specific trade in a Google Sheet tab."""
+    try:
+        df = load_trades(worksheet_name)
+        if index < len(df):
+            for key, value in updated_data.items():
+                df.at[index, key] = value
+            conn.update(worksheet=worksheet_name, data=df)
+            st.cache_data.clear()
+            return True
+        return False
+    except Exception as e:
+        st.error(f"UPDATE ERROR: {e}")
+        return False
+
+def delete_trade(worksheet_name, index):
+    """Delete a specific trade from a Google Sheet tab."""
+    try:
+        df = load_trades(worksheet_name)
+        if index < len(df):
+            # Drop the specific row and reset index
+            df = df.drop(index).reset_index(drop=True)
+            conn.update(worksheet=worksheet_name, data=df)
+            st.cache_data.clear()
+            return True
+        return False
+    except Exception as e:
+        st.error(f"DELETE ERROR: {e}")
+        return False

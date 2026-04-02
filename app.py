@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from calculations import calculate_pips, calculate_profit
-from data_manager import load_trades, add_trade, list_accounts, create_account, delete_account, get_starting_balance, set_starting_balance
+from data_manager import load_trades, add_trade, update_trade, delete_trade, list_accounts, create_account, delete_account, get_starting_balance, set_starting_balance
 
 # Configuration
 st.set_page_config(page_title="Forex Terminal Journal", page_icon="📈", layout="wide")
@@ -28,6 +28,9 @@ if "starting_balance" not in st.session_state:
 st.title("📟 FOREX TERMINAL JOURNAL v1.0")
 st.markdown(f'<div class="status-indicator">[ SESSION: {st.session_state.active_account} ]</div>', unsafe_allow_html=True)
 st.markdown("---")
+
+# --- Sidebar Data Fetch ---
+df = load_trades(st.session_state.active_account)
 
 # --- Sidebar: Account Management ---
 with st.sidebar.expander("🏢 ACCOUNT MANAGEMENT", expanded=False):
@@ -117,47 +120,68 @@ with st.sidebar.expander("➕ LOG NEW TRADE", expanded=False):
             st.success(f"TRADE RECORDED: {pips} PIPS / ${profit} USD")
             st.rerun()
 
-# --- Sidebar: Edit Trade ---
-df = load_trades(st.session_state.active_account)
-
-with st.sidebar.expander("🖊️ EDIT LOGGED TRADE", expanded=False):
+# --- Sidebar: Edit Logged Trades ---
+with st.sidebar.expander("📝 EDIT LOGGED TRADE", expanded=False):
     if not df.empty:
-        # Create unique labels for selectbox
-        trade_options = df.sort_values("Timestamp", ascending=False)
-        trade_labels = [f"{row['Pair']} ({row['Timestamp'][-8:]}) | ${row['Profit']}" for _, row in trade_options.iterrows()]
+        # Create descriptive labels for the selectbox
+        trade_options = []
+        for i, row in df.iterrows():
+            trade_options.append(f"{i}: {row['Pair']} ({row['Timestamp']})")
         
-        selected_label = st.selectbox("SELECT TRADE TO EDIT", trade_labels)
-        selected_ts = trade_options.iloc[trade_labels.index(selected_label)]["Timestamp"]
+        # Sort options to show latest trades first in the dropdown
+        trade_options.reverse()
         
-        # Get selected trade data for pre-populating
-        t_data = df[df["Timestamp"] == selected_ts].iloc[0]
-        
-        with st.form("edit_form"):
+        selected_option = st.selectbox("SELECT TRADE TO EDIT", trade_options)
+        edit_idx = int(selected_option.split(":")[0])
+        t_data = df.iloc[edit_idx]
+
+        with st.form(f"edit_form_{edit_idx}"):
             e_pair = st.text_input("Pair", value=t_data["Pair"])
-            e_type = st.selectbox("Action", ["Buy", "Sell"], index=0 if t_data["Type"] == "Buy" else 1)
+            e_action = st.selectbox("Action", ["Buy", "Sell"], index=0 if t_data["Type"] == "Buy" else 1)
             
-            e_col1, e_col2 = st.columns(2)
-            e_entry = e_col1.number_input("Entry Price", value=float(t_data["Entry"]), format="%.5f", step=0.0001)
-            e_exit = e_col2.number_input("Exit Price", value=float(t_data["Exit"]), format="%.5f", step=0.0001)
-            e_lots = st.number_input("Lot Size", value=float(t_data["Lots"]), min_value=0.01, step=0.1)
+            ec1, ec2 = st.columns(2)
+            with ec1:
+                e_entry = st.number_input("Entry Price", value=float(t_data["Entry"]), format="%.5f", step=0.0001)
+                e_lot = st.number_input("Lot Size", value=float(t_data["Lot Size"]), min_value=0.01, step=0.1)
+            with ec2:
+                e_exit = st.number_input("Exit Price", value=float(t_data["Exit"]), format="%.5f", step=0.0001)
             
-            e_notes = st.text_area("Notes", value=t_data["Notes"])
-            e_submit = st.form_submit_button("SYSTEM: UPDATE RECORD")
+            e_notes = st.text_area("Notes", value=str(t_data["Notes"]))
             
-            if e_submit:
-                from data_manager import update_trade_record
-                new_pips = calculate_pips(e_pair, e_entry, e_exit, e_type)
-                new_profit = calculate_profit(new_pips, e_lots)
+            update_btn = st.form_submit_button("SYSTEM: UPDATE RECORD")
+            
+            if update_btn:
+                # Recalculate pips and profit based on new edits
+                new_pips = calculate_pips(e_pair, e_entry, e_exit, e_action)
+                new_profit = calculate_profit(new_pips, e_lot)
                 
-                updated_row = [selected_ts, e_pair, e_type, e_entry, e_exit, e_lots, new_pips, new_profit, e_notes]
-                if update_trade_record(st.session_state.active_account, selected_ts, updated_row):
-                    st.success("TRADE UPDATED SUCCESSFULLY!")
+                updated_payload = {
+                    "Pair": e_pair.upper(),
+                    "Type": e_action.capitalize(),
+                    "Entry": e_entry,
+                    "Exit": e_exit,
+                    "Lot Size": e_lot,
+                    "Pips": new_pips,
+                    "Profit": new_profit,
+                    "Notes": e_notes
+                }
+                
+                if update_trade(st.session_state.active_account, edit_idx, updated_payload):
+                    st.success("TRADE UPDATED!")
+                    st.rerun()
+
+        # Deletion Section with Confirmation
+        st.markdown("---")
+        st.markdown("⚠️ **DANGER ZONE**")
+        confirm_delete = st.checkbox(f"CONFIRM DELETION OF TRADE #{edit_idx}")
+        if confirm_delete:
+            if st.button("PERMANENTLY DELETE RECORD", type="primary"):
+                if delete_trade(st.session_state.active_account, edit_idx):
+                    st.success("TRADE DELETED!")
                     st.rerun()
     else:
-        st.info("NO TRADES AVAILABLE TO EDIT.")
-
+        st.info("NO TRADES LOGGED YET.")
 # --- Main Dashboard ---
-df = load_trades(st.session_state.active_account)
 
 # Stats calculation
 start_bal = float(st.session_state.starting_balance)

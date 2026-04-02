@@ -124,10 +124,11 @@ with st.sidebar.expander("➕ LOG NEW TRADE", expanded=False):
 df = load_trades(st.session_state.active_account)
 
 # Stats calculation
+start_bal = float(st.session_state.starting_balance)
+
 if not df.empty:
     # Sort for chart
     df_chart = df.copy().sort_values("Timestamp")
-    start_bal = float(st.session_state.starting_balance)
     df_chart["Cumulative"] = start_bal + df_chart["Profit"].cumsum()
     
     total_trades = len(df)
@@ -135,23 +136,29 @@ if not df.empty:
     current_bal = start_bal + total_profit
     wins = len(df[df["Profit"] > 0])
     win_rate = (wins / total_trades) * 100 if total_trades > 0 else 0
-    
-    # Dashboard Metrics - Wrapped in Glass Card
-    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-    m1, m2, m3 = st.columns(3)
-    m1.metric("TOTAL TRADES", total_trades)
-    m2.metric("WIN RATE", f"{win_rate:.1f}%")
-    # Color based on profit
-    p_class = "profit-pos" if current_bal >= start_bal else "profit-neg"
-    m3.markdown(f'''
-        <div style="text-align: center;">
-            <label style="font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: 1.5px;">ACCOUNT BALANCE</label><br/>
-            <span class="{p_class}" style="font-family: Orbitron, sans-serif; font-size: 2rem;">${current_bal:,.2f}</span><br/>
-            <label style="font-size: 0.7rem; color: #555;">(INITIAL: ${start_bal:,.2f})</label>
-        </div>
-        ''', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+else:
+    total_trades = 0
+    total_profit = 0
+    current_bal = start_bal
+    win_rate = 0
 
+# Dashboard Metrics - ALWAYS SHOW (Ensures balance is visible)
+st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+m1, m2, m3 = st.columns(3)
+m1.metric("TOTAL TRADES", total_trades)
+m2.metric("WIN RATE", f"{win_rate:.1f}%")
+# Color based on profit
+p_class = "profit-pos" if current_bal >= start_bal else "profit-neg"
+m3.markdown(f'''
+    <div style="text-align: center;">
+        <label style="font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: 1.5px;">ACCOUNT BALANCE</label><br/>
+        <span class="{p_class}" style="font-family: Orbitron, sans-serif; font-size: 2rem;">${current_bal:,.2f}</span><br/>
+        <label style="font-size: 0.7rem; color: #555;">(INITIAL: ${start_bal:,.2f})</label>
+    </div>
+    ''', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
+
+if not df.empty:
     # --- Feature 1: Equity Curve ---
     st.markdown("### 📈 EQUITY GROWTH CURVE")
     with st.container():

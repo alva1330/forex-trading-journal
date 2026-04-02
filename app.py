@@ -143,7 +143,13 @@ if not df.empty:
     m2.metric("WIN RATE", f"{win_rate:.1f}%")
     # Color based on profit
     p_class = "profit-pos" if current_bal >= start_bal else "profit-neg"
-    m3.markdown(f'<div style="text-align: center;"><label style="font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: 1.5px;">ACCOUNT BALANCE</label><br/><span class="{p_class}" style="font-family: Orbitron, sans-serif; font-size: 2rem;">${current_bal:,.2f}</span></div>', unsafe_allow_html=True)
+    m3.markdown(f'''
+        <div style="text-align: center;">
+            <label style="font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: 1.5px;">ACCOUNT BALANCE</label><br/>
+            <span class="{p_class}" style="font-family: Orbitron, sans-serif; font-size: 2rem;">${current_bal:,.2f}</span><br/>
+            <label style="font-size: 0.7rem; color: #555;">(INITIAL: ${start_bal:,.2f})</label>
+        </div>
+        ''', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
     # --- Feature 1: Equity Curve ---

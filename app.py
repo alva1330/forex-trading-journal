@@ -54,47 +54,44 @@ with st.sidebar.expander("🏢 ACCOUNT MANAGEMENT", expanded=False):
         st.session_state.starting_balance = get_starting_balance(active_acc)
         st.rerun()
     
-    # Create New Account
+    # Nested sections for compactness
     st.markdown("---")
-    new_acc_name = st.text_input("New Account Name")
-    if st.button("CREATE"):
-        if new_acc_name and new_acc_name not in accounts:
-            if create_account(new_acc_name):
-                st.success(f"ACCOUNT '{new_acc_name}' CREATED!")
-                st.session_state.accounts = list_accounts()
-                st.session_state.active_account = new_acc_name
-                st.rerun()
-        else:
-            st.error("INVALID NAME OR ALREADY EXISTS.")
-
-    # Delete Account Section
-    st.markdown("---")
-    st.caption("🗑️ DELETE ACCOUNT")
-    delete_options = [acc for acc in accounts if acc != st.session_state.active_account]
     
-    if len(accounts) > 1:
-        if delete_options:
-            acc_to_delete = st.selectbox("SELECT ACCOUNT TO DELETE", delete_options)
-            if st.button("DELETE PERMANENTLY", type="secondary"):
-                if delete_account(acc_to_delete):
-                    st.success(f"ACCOUNT '{acc_to_delete}' DELETED!")
+    with st.expander("🆕 CREATE NEW ACCOUNT", expanded=False):
+        new_acc_name = st.text_input("New Account Name")
+        if st.button("CREATE"):
+            if new_acc_name and new_acc_name not in accounts:
+                if create_account(new_acc_name):
+                    st.success(f"ACCOUNT '{new_acc_name}' CREATED!")
                     st.session_state.accounts = list_accounts()
+                    st.session_state.active_account = new_acc_name
                     st.rerun()
+            else:
+                st.error("INVALID NAME OR ALREADY EXISTS.")
+
+    with st.expander("🗑️ DELETE ACCOUNT", expanded=False):
+        delete_options = [acc for acc in accounts if acc != st.session_state.active_account]
+        if len(accounts) > 1:
+            if delete_options:
+                acc_to_delete = st.selectbox("SELECT ACCOUNT TO DELETE", delete_options)
+                if st.button("DELETE PERMANENTLY", type="secondary"):
+                    if delete_account(acc_to_delete):
+                        st.success(f"ACCOUNT '{acc_to_delete}' DELETED!")
+                        st.session_state.accounts = list_accounts()
+                        st.rerun()
+            else:
+                st.info("SWITCH ACCOUNTS TO DELETE OTHERS.")
         else:
-            st.info("SWITCH ACCOUNTS TO DELETE OTHERS.")
-    else:
-        st.info("CANNOT DELETE THE LAST ACCOUNT.")
+            st.info("CANNOT DELETE THE LAST ACCOUNT.")
     
-    # Starting Balance Section
-    st.markdown("---")
-    st.caption("💼 BALANCE SETTINGS")
-    current_sb = get_starting_balance(st.session_state.active_account)
-    sb_input = st.number_input("Starting Capital ($)", value=float(current_sb), step=100.0)
-    if st.button("SAVE BALANCE"):
-        if set_starting_balance(st.session_state.active_account, sb_input):
-            st.session_state.starting_balance = sb_input
-            st.success("BALANCE SAVED!")
-            st.rerun()
+    with st.expander("💼 INITIAL BALANCE", expanded=False):
+        current_sb = get_starting_balance(st.session_state.active_account)
+        sb_input = st.number_input("Starting Capital ($)", value=float(current_sb), step=100.0)
+        if st.button("SAVE BALANCE"):
+            if set_starting_balance(st.session_state.active_account, sb_input):
+                st.session_state.starting_balance = sb_input
+                st.success("BALANCE SAVED!")
+                st.rerun()
 
 # --- Sidebar: Add New Trade ---
 with st.sidebar.expander("➕ LOG NEW TRADE", expanded=False):

@@ -60,11 +60,31 @@ html, body, [data-testid="stAppViewContainer"] {
 [data-testid="stMetricLabel"] {
     text-transform: uppercase;
     letter-spacing: 1.5px;
-    color: #888 !important;
+    color: #ffffff !important; /* Increased contrast from #888 */
     font-size: 0.8rem !important;
 }
 
-/* --- Header / Titles --- */
+/* --- Sidebar Text Legibility --- */
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] div {
+    color: #ffffff !important;
+}
+
+/* --- Expander Header Legibility --- */
+.stExpander div[data-testid="stExpanderHeader"] p {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-family: 'Orbitron', sans-serif !important;
+    letter-spacing: 1px;
+}
+
+/* --- Caption/Info Text --- */
+.stCaption, st.info, .stMarkdown em {
+    color: #cccccc !important;
+}
+
+/* --- Indicators --- */
 h1 {
     font-family: 'Orbitron', sans-serif;
     font-weight: 700;

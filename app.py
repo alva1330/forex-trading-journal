@@ -181,6 +181,36 @@ if not df.empty:
         )
         st.plotly_chart(fig, use_container_width=True, theme=None)
         st.markdown('</div>', unsafe_allow_html=True)
+
+    # --- Feature 2: Pair Analysis ---
+    st.markdown("### 🧩 PAIR PROFITABILITY")
+    with st.container():
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        # Group by pair and sum profit
+        df_pair = df.groupby("Pair")["Profit"].sum().reset_index()
+        # Add color column for positive/negative values
+        df_pair["Status"] = ["PROFIT" if x >= 0 else "LOSS" for x in df_pair["Profit"]]
+        
+        fig_pair = px.bar(
+            df_pair,
+            x="Pair",
+            y="Profit",
+            color="Status",
+            template="plotly_dark",
+            color_discrete_map={"PROFIT": "#00ffa3", "LOSS": "#ff4b4b"},
+            labels={"Profit": "Net Profit ($)", "Pair": "Currency Pair"}
+        )
+        # Cyber Styling
+        fig_pair.update_layout(
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            margin=dict(l=10, r=10, t=10, b=10),
+            xaxis=dict(showgrid=False, tickfont=dict(color="#888")),
+            yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.05)", tickfont=dict(color="#888")),
+            showlegend=False
+        )
+        st.plotly_chart(fig_pair, use_container_width=True, theme=None)
+        st.markdown('</div>', unsafe_allow_html=True)
 else:
     st.info("NO TRADE DATA DETECTED. INITIALIZE LOG IN SIDEBAR.")
 

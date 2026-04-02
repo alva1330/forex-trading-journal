@@ -117,6 +117,45 @@ with st.sidebar.expander("➕ LOG NEW TRADE", expanded=False):
             st.success(f"TRADE RECORDED: {pips} PIPS / ${profit} USD")
             st.rerun()
 
+# --- Sidebar: Edit Trade ---
+df = load_trades(st.session_state.active_account)
+
+with st.sidebar.expander("🖊️ EDIT LOGGED TRADE", expanded=False):
+    if not df.empty:
+        # Create unique labels for selectbox
+        trade_options = df.sort_values("Timestamp", ascending=False)
+        trade_labels = [f"{row['Pair']} ({row['Timestamp'][-8:]}) | ${row['Profit']}" for _, row in trade_options.iterrows()]
+        
+        selected_label = st.selectbox("SELECT TRADE TO EDIT", trade_labels)
+        selected_ts = trade_options.iloc[trade_labels.index(selected_label)]["Timestamp"]
+        
+        # Get selected trade data for pre-populating
+        t_data = df[df["Timestamp"] == selected_ts].iloc[0]
+        
+        with st.form("edit_form"):
+            e_pair = st.text_input("Pair", value=t_data["Pair"])
+            e_type = st.selectbox("Action", ["Buy", "Sell"], index=0 if t_data["Type"] == "Buy" else 1)
+            
+            e_col1, e_col2 = st.columns(2)
+            e_entry = e_col1.number_input("Entry Price", value=float(t_data["Entry"]), format="%.5f", step=0.0001)
+            e_exit = e_col2.number_input("Exit Price", value=float(t_data["Exit"]), format="%.5f", step=0.0001)
+            e_lots = st.number_input("Lot Size", value=float(t_data["Lots"]), min_value=0.01, step=0.1)
+            
+            e_notes = st.text_area("Notes", value=t_data["Notes"])
+            e_submit = st.form_submit_button("SYSTEM: UPDATE RECORD")
+            
+            if e_submit:
+                from data_manager import update_trade_record
+                new_pips = calculate_pips(e_pair, e_entry, e_exit, e_type)
+                new_profit = calculate_profit(new_pips, e_lots)
+                
+                updated_row = [selected_ts, e_pair, e_type, e_entry, e_exit, e_lots, new_pips, new_profit, e_notes]
+                if update_trade_record(st.session_state.active_account, selected_ts, updated_row):
+                    st.success("TRADE UPDATED SUCCESSFULLY!")
+                    st.rerun()
+    else:
+        st.info("NO TRADES AVAILABLE TO EDIT.")
+
 # --- Main Dashboard ---
 df = load_trades(st.session_state.active_account)
 

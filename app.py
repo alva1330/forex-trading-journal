@@ -20,6 +20,24 @@ def local_css(file_name):
 
 local_css("styles.css")
 
+# --- UI Components (Dialogs) ---
+@st.dialog("LOG NEW TRADE", width="small")
+def show_trade_dialog(account_name):
+    with st.form("trade_form", clear_on_submit=True):
+        pair = st.text_input("Pair (e.g. EUR/USD)", value="EUR/USD")
+        trade_type = st.selectbox("Action", ["Buy", "Sell"])
+        c1, c2 = st.columns(2)
+        entry_price = c1.number_input("Entry", format="%.5f", step=0.0001)
+        exit_price = c2.number_input("Exit", format="%.5f", step=0.0001)
+        lot_size = st.number_input("Lot Size", min_value=0.01, value=1.0, step=0.1)
+        notes = st.text_area("Notes")
+        if st.form_submit_button("COMMIT TRADE", use_container_width=True):
+            pips = calculate_pips(pair, entry_price, exit_price, trade_type)
+            profit = calculate_profit(pips, lot_size)
+            add_trade(account_name, pair, trade_type, entry_price, exit_price, lot_size, pips, profit, notes)
+            st.success("TRADE RECORDED")
+            st.rerun()
+
 # --- Data Initialization ---
 if "accounts" not in st.session_state:
     st.session_state.accounts = list_accounts()
@@ -74,22 +92,8 @@ if active_acc != st.session_state.active_account:
 
 st.sidebar.markdown("---")
 
-# Quick Actions
-with st.sidebar.expander("➕ LOG NEW TRADE"):
-    with st.form("trade_form", clear_on_submit=True):
-        pair = st.text_input("Pair (e.g. EUR/USD)", value="EUR/USD")
-        trade_type = st.selectbox("Action", ["Buy", "Sell"])
-        c1, c2 = st.columns(2)
-        entry_price = c1.number_input("Entry", format="%.5f", step=0.0001)
-        exit_price = c2.number_input("Exit", format="%.5f", step=0.0001)
-        lot_size = st.number_input("Lot Size", min_value=0.01, value=1.0, step=0.1)
-        notes = st.text_area("Notes")
-        if st.form_submit_button("COMMIT TRADE"):
-            pips = calculate_pips(pair, entry_price, exit_price, trade_type)
-            profit = calculate_profit(pips, lot_size)
-            add_trade(st.session_state.active_account, pair, trade_type, entry_price, exit_price, lot_size, pips, profit, notes)
-            st.success("TRADE RECORDED")
-            st.rerun()
+# Quick Actions (Sidebar Management Only)
+# LOG NEW TRADE REMOVED FROM SIDEBAR PER REQUEST
 
 with st.sidebar.expander("📝 EDIT / DELETE"):
     if not df.empty:
@@ -252,7 +256,7 @@ st.markdown('<div class="lumina-card">', unsafe_allow_html=True)
 search_col1, search_col2 = st.columns([3, 1])
 search_term = search_col1.text_input("Search pairs or type...", "", placeholder="FILTER TRADES...").upper()
 if search_col2.button("➕ NEW TRADE", use_container_width=True):
-    st.sidebar.markdown('<p style="color: #10b981; font-weight: bold;">USE THE "LOG NEW TRADE" SECTION IN SIDEBAR</p>', unsafe_allow_html=True)
+    show_trade_dialog(st.session_state.active_account)
 
 if not df.empty:
     filtered_df = df[df["Pair"].str.contains(search_term) | df["Type"].str.contains(search_term)] if search_term else df

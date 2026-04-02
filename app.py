@@ -119,15 +119,46 @@ with st.sidebar.expander("📝 EDIT / DELETE"):
 
 st.sidebar.markdown("---")
 with st.sidebar.expander("⚙️ SETTINGS"):
-    if st.button("SYNC CLOUD DATA"):
-        st.cache_data.clear()
-        st.session_state.accounts = list_accounts()
-        st.rerun()
-    
+    st.markdown("### ACCOUNT SETTINGS")
     current_sb = get_starting_balance(st.session_state.active_account)
     sb_input = st.number_input("Starting Capital ($)", value=float(current_sb), step=100.0)
     if st.button("SAVE INITIAL BALANCE"):
         set_starting_balance(st.session_state.active_account, sb_input)
+        st.session_state.starting_balance = sb_input  # FORCE REFRESH APP MEMORY
+        st.success("BALANCE UPDATED")
+        st.rerun()
+    
+    st.markdown("---")
+    st.markdown("### 🏢 ACCOUNT MANAGEMENT")
+    
+    # Create Account
+    new_acc_name = st.text_input("New Account Name", placeholder="e.g. Funding Challenge")
+    if st.button("➕ CREATE ACCOUNT"):
+        if new_acc_name:
+            if create_account(new_acc_name):
+                st.session_state.accounts = list_accounts()
+                st.session_state.active_account = new_acc_name
+                st.success(f"ACCOUNT '{new_acc_name}' CREATED")
+                st.rerun()
+            else:
+                st.error("ACCOUNT ALREADY EXISTS")
+        else:
+            st.warning("ENTER A NAME First")
+            
+    # Delete Account
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.session_state.active_account != "Sheet1": # Don't delete the default
+        if st.checkbox("Confirm Delete Active Account"):
+            if st.button("🗑️ DELETE THIS ACCOUNT", type="primary"):
+                delete_account(st.session_state.active_account)
+                st.session_state.accounts = list_accounts()
+                st.session_state.active_account = st.session_state.accounts[0]
+                st.rerun()
+    
+    st.markdown("---")
+    if st.button("🔄 REFRESH DATABASE"):
+        st.cache_data.clear()
+        st.session_state.accounts = list_accounts()
         st.rerun()
 
 # --- Main Analytics Dashboard ---

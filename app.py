@@ -6,7 +6,12 @@ from calculations import calculate_pips, calculate_profit
 from data_manager import load_trades, add_trade, update_trade, delete_trade, list_accounts, create_account, delete_account, get_starting_balance, set_starting_balance
 
 # Configuration
-st.set_page_config(page_title="Lumina Journal | Professional Trading Terminal", page_icon="💹", layout="wide")
+st.set_page_config(
+    page_title="Lumina Journal | Professional Trading Terminal", 
+    page_icon="💹", 
+    layout="wide",
+    initial_sidebar_state="expanded"  # Forces the sidebar to stay open!
+)
 
 # Injection of custom CSS
 def local_css(file_name):

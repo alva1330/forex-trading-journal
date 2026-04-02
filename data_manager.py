@@ -1,194 +1,198 @@
-import streamlit as st
-from streamlit_gsheets import GSheetsConnection
+import sqlite3
 import pandas as pd
+import streamlit as st
 from datetime import datetime
+import os
 
-# Initialize Google Sheets Connection
-conn = st.connection("gsheets", type=GSheetsConnection)
-
+DB_PATH = "trades.db"
 COLUMNS = ["Timestamp", "Pair", "Type", "Entry", "Exit", "Lot Size", "Pips", "Profit", "Notes"]
 
-import gspread
+def init_db():
+    """Initialize the SQLite database with required tables."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    # Create Accounts table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS accounts (
+            name TEXT PRIMARY KEY,
+            starting_balance REAL DEFAULT 0.0
+        )
+    ''')
+    
+    # Create Trades table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS trades (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            account_name TEXT,
+            timestamp TEXT,
+            pair TEXT,
+            type TEXT,
+            entry REAL,
+            exit REAL,
+            lot_size REAL,
+            pips REAL,
+            profit REAL,
+            notes TEXT,
+            FOREIGN KEY (account_name) REFERENCES accounts (name)
+        )
+    ''')
+    
+    # Ensure at least one default account exists
+    cursor.execute("SELECT COUNT(*) FROM accounts")
+    if cursor.fetchone()[0] == 0:
+        cursor.execute("INSERT INTO accounts (name, starting_balance) VALUES (?, ?)", ("Sheet1", 0.0))
+    
+    conn.commit()
+    conn.close()
 
-@st.cache_data(ttl=120)
+# Initialize DB on import
+init_db()
+
+@st.cache_data(ttl=600)
 def list_accounts():
-    """List all accounts (worksheets) in the Google Sheet using direct gspread access."""
-    try:
-        # Get credentials dictionary from Streamlit secrets
-        creds_dict = dict(st.secrets["connections"]["gsheets"])
-        
-        # Remove the spreadsheet URL from the dict so gspread doesn't complain about extra keys
-        url = creds_dict.pop("spreadsheet", None)
-        
-        # Authorize directly with gspread for the metadata list
-        gc = gspread.service_account_from_dict(creds_dict)
-        sh = gc.open_by_url(url)
-        
-        return [ws.title for ws in sh.worksheets()]
-    except Exception as e:
-        # Fallback to Sheet1 if listing fails to keep the app alive
-        return ["Sheet1"]
+    """List all accounts from the database."""
+    conn = sqlite3.connect(DB_PATH)
+    df = pd.read_sql_query("SELECT name FROM accounts", conn)
+    conn.close()
+    return df['name'].tolist()
 
 def get_starting_balance(name):
-    """Fetch the starting balance for an account from the _metadata worksheet."""
-    try:
-        # Get credentials dictionary from Streamlit secrets
-        creds_dict = dict(st.secrets["connections"]["gsheets"])
-        url = creds_dict.pop("spreadsheet", None)
-        
-        # Authorize directly with gspread
-        gc = gspread.service_account_from_dict(creds_dict)
-        sh = gc.open_by_url(url)
-        
-        # Open or create _metadata worksheet
-        try:
-            ws_meta = sh.worksheet("_metadata")
-        except gspread.exceptions.WorksheetNotFound:
-            ws_meta = sh.add_worksheet(title="_metadata", rows="100", cols="2")
-            ws_meta.append_row(["AccountName", "StartingBalance"])
-        
-        # Find the account's balance
-        records = ws_meta.get_all_records()
-        for row in records:
-            if row["AccountName"] == name:
-                return float(row["StartingBalance"])
-        return 0.0
-    except Exception as e:
-        return 0.0
+    """Fetch starting balance for an account."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT starting_balance FROM accounts WHERE name = ?", (name,))
+    result = cursor.fetchone()
+    conn.close()
+    return result[0] if result else 0.0
 
 def set_starting_balance(name, balance):
-    """Set the starting balance for an account in the _metadata worksheet."""
+    """Update starting balance for an account."""
     try:
-        # Get credentials dictionary from Streamlit secrets
-        creds_dict = dict(st.secrets["connections"]["gsheets"])
-        url = creds_dict.pop("spreadsheet", None)
-        
-        # Authorize directly with gspread
-        gc = gspread.service_account_from_dict(creds_dict)
-        sh = gc.open_by_url(url)
-        
-        # Open or create _metadata worksheet
-        try:
-            ws_meta = sh.worksheet("_metadata")
-        except gspread.exceptions.WorksheetNotFound:
-            ws_meta = sh.add_worksheet(title="_metadata", rows="100", cols="2")
-            ws_meta.append_row(["AccountName", "StartingBalance"])
-        
-        # Check if record exists
-        cell = ws_meta.find(name)
-        if cell:
-            # Update existing balance
-            ws_meta.update_cell(cell.row, 2, balance)
-        else:
-            # Add new record
-            ws_meta.append_row([name, balance])
-            
-        st.cache_data.clear()
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("UPDATE accounts SET starting_balance = ? WHERE name = ?", (balance, name))
+        conn.commit()
+        conn.close()
         return True
-    except Exception as e:
-        st.error(f"SYSTEM ERROR: {e}")
-        return False
-
-def delete_account(name):
-    """Delete an account (worksheet) from the Google Sheet."""
-    try:
-        # Get credentials dictionary from Streamlit secrets
-        creds_dict = dict(st.secrets["connections"]["gsheets"])
-        url = creds_dict.pop("spreadsheet", None)
-        
-        # Authorize directly with gspread
-        gc = gspread.service_account_from_dict(creds_dict)
-        sh = gc.open_by_url(url)
-        
-        # Find and delete the worksheet
-        worksheet = sh.worksheet(name)
-        sh.del_worksheet(worksheet)
-        
-        # Clear all caches
-        st.cache_data.clear()
-        return True
-    except Exception as e:
-        st.error(f"SYSTEM ERROR: {e}")
+    except Exception:
         return False
 
 def create_account(name):
-    """Create a new account (worksheet) with headers."""
+    """Create a new account."""
     try:
-        df_headers = pd.DataFrame(columns=COLUMNS)
-        # Create a new worksheet and initialize with headers
-        conn.create(worksheet=name, data=df_headers)
-        # Clear all caches
-        st.cache_data.clear()
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO accounts (name, starting_balance) VALUES (?, ?)", (name, 0.0))
+        conn.commit()
+        conn.close()
         return True
-    except Exception as e:
-        st.error(f"SYSTEM ERROR: {e}")
+    except sqlite3.IntegrityError:
         return False
 
-def load_trades(worksheet_name="Sheet1"):
-    """Load trades from a specific Google Sheet tab."""
+def delete_account(name):
+    """Delete an account and its associated trades."""
     try:
-        # Set ttl to 0 to always get the freshest data from the cloud
-        df = conn.read(worksheet=worksheet_name, ttl=0)
-        if df is None or df.empty:
-             return pd.DataFrame(columns=COLUMNS)
-        return df
-    except Exception as e:
-        return pd.DataFrame(columns=COLUMNS)
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM trades WHERE account_name = ?", (name,))
+        cursor.execute("DELETE FROM accounts WHERE name = ?", (name,))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception:
+        return False
 
-def add_trade(worksheet_name, pair, trade_type, entry, exit, lot_size, pips, profit, notes):
-    """Add a new trade to a specific Google Sheet tab."""
-    new_trade = {
-        "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "Pair": pair.upper(),
-        "Type": trade_type.capitalize(),
-        "Entry": entry,
-        "Exit": exit,
-        "Lot Size": lot_size,
-        "Pips": pips,
-        "Profit": profit,
-        "Notes": notes
-    }
-    
-    # Load freshest history for the selected account
-    df = load_trades(worksheet_name)
-    
-    # Ensure COLUMNS are present
+def load_trades(account_name="Sheet1"):
+    """Load trades for a specific account, formatted as a DataFrame."""
+    conn = sqlite3.connect(DB_PATH)
+    # Mapping SQL columns (lowercase) to App columns (Capitalized) to avoid KeyErrors
+    query = """
+        SELECT 
+            timestamp as 'Timestamp', 
+            pair as 'Pair', 
+            type as 'Type', 
+            entry as 'Entry', 
+            exit as 'Exit', 
+            lot_size as 'Lot Size', 
+            pips as 'Pips', 
+            profit as 'Profit', 
+            notes as 'Notes' 
+        FROM trades 
+        WHERE account_name = ?
+    """
+    df = pd.read_sql_query(query, conn, params=(account_name,))
+    conn.close()
     if df.empty:
-        df = pd.DataFrame(columns=COLUMNS)
+        return pd.DataFrame(columns=COLUMNS)
+    return df
 
-    # Append new trade to the list
-    new_df = pd.concat([df, pd.DataFrame([new_trade])], ignore_index=True)
-    
-    # Push the full updated list back to the specific tab
-    conn.update(worksheet=worksheet_name, data=new_df)
-    return new_df
-
-def update_trade(worksheet_name, index, updated_data):
-    """Update a specific trade in a Google Sheet tab."""
+def add_trade(account_name, pair, trade_type, entry, exit, lot_size, pips, profit, notes):
+    """Log a new trade to the database."""
     try:
-        df = load_trades(worksheet_name)
-        if index < len(df):
-            for key, value in updated_data.items():
-                df.at[index, key] = value
-            conn.update(worksheet=worksheet_name, data=df)
-            st.cache_data.clear()
-            return True
-        return False
-    except Exception as e:
-        st.error(f"UPDATE ERROR: {e}")
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute('''
+            INSERT INTO trades (account_name, timestamp, pair, type, entry, exit, lot_size, pips, profit, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (account_name, timestamp, pair.upper(), trade_type.capitalize(), entry, exit, lot_size, pips, profit, notes))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception:
         return False
 
-def delete_trade(worksheet_name, index):
-    """Delete a specific trade from a Google Sheet tab."""
+def update_trade(account_name, index, updated_fields):
+    """Update a specific trade. Since we use a list in the UI, we find the nth trade and update it."""
     try:
-        df = load_trades(worksheet_name)
-        if index < len(df):
-            # Drop the specific row and reset index
-            df = df.drop(index).reset_index(drop=True)
-            conn.update(worksheet=worksheet_name, data=df)
-            st.cache_data.clear()
-            return True
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Pull trade IDs for this account in original order
+        cursor.execute("SELECT id FROM trades WHERE account_name = ? ORDER BY id ASC", (account_name,))
+        ids = [row[0] for row in cursor.fetchall()]
+        
+        if index < len(ids):
+            trade_id = ids[index]
+            # Mapping from DF columns to DB columns
+            db_map = {
+                "Pair": "pair",
+                "Type": "type",
+                "Entry": "entry",
+                "Exit": "exit",
+                "Lot Size": "lot_size",
+                "Pips": "pips",
+                "Profit": "profit",
+                "Notes": "notes"
+            }
+            
+            for key, val in updated_fields.items():
+                db_col = db_map.get(key, key)
+                cursor.execute(f"UPDATE trades SET {db_col} = ? WHERE id = ?", (val, trade_id))
+            
+            conn.commit()
+        conn.close()
+        return True
+    except Exception:
         return False
-    except Exception as e:
-        st.error(f"DELETE ERROR: {e}")
+
+def delete_trade(account_name, index):
+    """Delete a specific trade for an account based on its display index."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Pull trade IDs for this account in original order
+        cursor.execute("SELECT id FROM trades WHERE account_name = ? ORDER BY id ASC", (account_name,))
+        ids = [row[0] for row in cursor.fetchall()]
+        
+        if index < len(ids):
+            trade_id = ids[index]
+            cursor.execute("DELETE FROM trades WHERE id = ?", (trade_id,))
+            conn.commit()
+        
+        conn.close()
+        return True
+    except Exception:
         return False

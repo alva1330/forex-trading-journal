@@ -1,75 +1,135 @@
-/* Professional Forex Terminal CSS - Stitch Design System */
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+/* 
+   ========================================
+   PREMIUM CYBER-GRID THEME v2.0
+   ========================================
+*/
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Orbitron:wght@400;700&display=swap');
 
+/* --- Root Variables for Constant Glow --- */
 :root {
-    --bg-deep: #0a0b0d;
-    --surface: #14161a;
-    --border: #2a2e35;
-    --text: #ffffff;
-    --text-dim: #8b949e;
-    --neon-green: #00e676;
-    --neon-red: #ff1744;
-    --neon-glow: rgba(0, 230, 118, 0.3);
-    --neon-glow-red: rgba(255, 23, 68, 0.3);
+    --neon-green: #00ffa3;
+    --neon-red: #ff4b4b;
+    --glass-bg: rgba(20, 20, 20, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --grid-color: rgba(0, 255, 163, 0.03);
 }
 
+/* --- Base Body & Grid Background --- */
 html, body, [data-testid="stAppViewContainer"] {
-    background-color: var(--bg-deep);
-    font-family: 'JetBrains Mono', monospace;
-    color: var(--text);
+    background: radial-gradient(circle at 50% 50%, #111111 0%, #050505 100%) !important;
+    background-image: 
+        linear-gradient(var(--grid-color) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-color) 1px, transparent 1px) !important;
+    background-size: 30px 30px !important;
+    font-family: 'Inter', sans-serif;
+    color: #f0f0f0;
 }
 
-/* Glassmorphism Sidebar */
+/* --- Sidebar Glass --- */
 [data-testid="stSidebar"] {
-    background: rgba(20, 22, 26, 0.7) !important;
+    background-color: rgba(10, 10, 10, 0.95);
+    border-right: 1px solid var(--glass-border);
+}
+
+/* --- Glassmorphism Cards --- */
+.glass-card {
+    background: var(--glass-bg);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    transition: transform 0.3s ease, border 0.3s ease;
 }
 
-/* Neon Metric Cards */
-.stMetric {
-    background-color: var(--surface);
-    padding: 20px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    transition: all 0.3s ease;
+.glass-card:hover {
+    border: 1px solid rgba(0, 255, 163, 0.3);
 }
 
-.neon-success .stMetric {
-    border: 1px solid var(--neon-green) !important;
-    box-shadow: 0 0 15px var(--neon-glow) !important;
+/* --- Metric Styling --- */
+[data-testid="stMetricValue"] {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    color: var(--neon-green) !important;
+    font-size: 2rem !important;
+    text-shadow: 0 0 10px rgba(0, 255, 163, 0.4);
 }
 
-.neon-danger .stMetric {
-    border: 1px solid var(--neon-red) !important;
-    box-shadow: 0 0 15px var(--neon-glow-red) !important;
-}
-
-h1, h2, h3 {
-    color: var(--neon-green);
+[data-testid="stMetricLabel"] {
     text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #888 !important;
+    font-size: 0.8rem !important;
+}
+
+/* --- Header / Titles --- */
+h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: var(--neon-green) !important;
+    text-shadow: 0 0 15px rgba(0, 255, 163, 0.6);
+    margin-bottom: 30px !important;
+}
+
+h3 {
+    font-size: 1.1rem !important;
     letter-spacing: 2px;
+    color: #fff !important;
 }
 
-/* Mobile Friendly Buttons */
-.stButton > button {
-    min-height: 48px;
-    padding: 12px 24px;
-    font-size: 1rem;
-    border-radius: 6px;
+/* --- Data Table --- */
+.stDataFrame {
+    background: var(--glass-bg);
+    border-radius: 12px;
 }
 
-/* Status Indicator */
+/* --- Indicators --- */
 .status-indicator {
-    padding: 10px 15px;
+    padding: 8px 16px;
     border: 1px solid var(--neon-green);
     color: var(--neon-green);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    background-color: rgba(0, 230, 118, 0.05);
-    box-shadow: 0 0 10px var(--neon-glow);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.75rem;
+    background: rgba(0, 255, 163, 0.05);
+    border-radius: 4px;
     float: right;
-    margin-top: -65px;
+    margin-top: -70px;
+    box-shadow: 0 0 10px rgba(0, 255, 163, 0.2);
+}
+
+/* --- Red Profit --- */
+.profit-neg {
+    color: var(--neon-red) !important;
+    text-shadow: 0 0 10px rgba(255, 75, 75, 0.3);
+}
+
+/* --- Green Profit --- */
+.profit-pos {
+    color: var(--neon-green) !important;
+    text-shadow: 0 0 10px rgba(0, 255, 163, 0.3);
+}
+
+/* --- Expander Styling --- */
+.stExpander {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--glass-border) !important;
+    border-radius: 8px !important;
+}
+
+/* --- Custom Scrollbar --- */
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #050505;
+}
+::-webkit-scrollbar-thumb {
+    background: #222;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--neon-green);
 }

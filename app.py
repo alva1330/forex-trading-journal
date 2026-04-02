@@ -11,6 +11,8 @@ def local_css(file_name):
     with open(file_name) as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
+local_css("styles.css")
+
 # --- Data Initialization ---
 if "accounts" not in st.session_state:
     st.session_state.accounts = list_accounts()
@@ -108,43 +110,38 @@ if not df.empty:
     wins = len(df[df["Profit"] > 0])
     win_rate = (wins / total_trades) * 100 if total_trades > 0 else 0
     
-    # Dashboard Metrics with Neon Glow
+    # Dashboard Metrics - Wrapped in Glass Card
+    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
     m1, m2, m3 = st.columns(3)
-    
-    with m1:
-        st.markdown('<div class="neon-success">', unsafe_allow_html=True)
-        st.metric("TOTAL TRADES", total_trades)
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-    with m2:
-        glow_class = "neon-success" if win_rate >= 50 else "neon-danger"
-        st.markdown(f'<div class="{glow_class}">', unsafe_allow_html=True)
-        st.metric("WIN RATE", f"{win_rate:.1f}%")
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-    with m3:
-        glow_class = "neon-success" if total_profit >= 0 else "neon-danger"
-        st.markdown(f'<div class="{glow_class}">', unsafe_allow_html=True)
-        st.metric("NET P/L (USD)", f"${total_profit:,.2f}")
-        st.markdown('</div>', unsafe_allow_html=True)
+    m1.metric("TOTAL TRADES", total_trades)
+    m2.metric("WIN RATE", f"{win_rate:.1f}%")
+    # Color based on profit
+    p_class = "profit-pos" if total_profit >= 0 else "profit-neg"
+    m3.markdown(f'<div style="text-align: center;"><label style="font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: 1.5px;">NET P/L (USD)</label><br/><span class="{p_class}" style="font-family: Orbitron, sans-serif; font-size: 2rem;">${total_profit:,.2f}</span></div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 else:
     st.info("NO TRADE DATA DETECTED. INITIALIZE LOG IN SIDEBAR.")
 
 st.markdown("### 📊 TRADE HISTORY DATA")
 
-# Search/Filter
+# Table Area - Wrapped in Glass Card
+st.markdown('<div class="glass-card">', unsafe_allow_html=True)
 search_term = st.text_input("FILTER BY PAIR/TYPE", "").upper()
-if search_term:
-    filtered_df = df[df["Pair"].str.contains(search_term) | df["Type"].str.contains(search_term)]
-else:
-    filtered_df = df
 
-if not filtered_df.empty:
-    # Stylized Trade Table
-    st.dataframe(filtered_df.sort_values(by="Timestamp", ascending=False), use_container_width=True)
+if not df.empty:
+    if search_term:
+        filtered_df = df[df["Pair"].str.contains(search_term) | df["Type"].str.contains(search_term)]
+    else:
+        filtered_df = df
+
+    if not filtered_df.empty:
+        st.dataframe(filtered_df.sort_values(by="Timestamp", ascending=False), use_container_width=True)
+    else:
+        st.write("NO HISTORY MATCHES SEARCH CRITERIA.")
 else:
-    st.write("NO HISTORY MATCHES SEARCH CRITERIA.")
+    st.write("NO TRADES LOGGED YET.")
+st.markdown('</div>', unsafe_allow_html=True)
 
 # Terminal-style Footer
 st.markdown("---")
-st.caption("SYSTEM STATUS: ONLINE | DATABASE: TRADES.CSV | ENCRYPTION: NONE")
+st.caption("SYSTEM STATUS: ONLINE | DATABASE: GOOGLE SHEETS | ENCRYPTION: SSL")

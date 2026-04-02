@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from calculations import calculate_pips, calculate_profit
-from data_manager import load_trades, add_trade, list_accounts, create_account
+from data_manager import load_trades, add_trade, list_accounts, create_account, delete_account
 
 # Configuration
 st.set_page_config(page_title="Forex Terminal Journal", page_icon="📈", layout="wide")
@@ -55,6 +55,24 @@ with st.sidebar.expander("🏢 ACCOUNT MANAGEMENT", expanded=False):
                 st.rerun()
         else:
             st.error("INVALID NAME OR ALREADY EXISTS.")
+
+    # Delete Account Section
+    st.markdown("---")
+    st.caption("🗑️ DELETE ACCOUNT")
+    delete_options = [acc for acc in accounts if acc != st.session_state.active_account]
+    
+    if len(accounts) > 1:
+        if delete_options:
+            acc_to_delete = st.selectbox("SELECT ACCOUNT TO DELETE", delete_options)
+            if st.button("DELETE PERMANENTLY", type="secondary"):
+                if delete_account(acc_to_delete):
+                    st.success(f"ACCOUNT '{acc_to_delete}' DELETED!")
+                    st.session_state.accounts = list_accounts()
+                    st.rerun()
+        else:
+            st.info("SWITCH ACCOUNTS TO DELETE OTHERS.")
+    else:
+        st.info("CANNOT DELETE THE LAST ACCOUNT.")
 
 # --- Sidebar: Add New Trade ---
 with st.sidebar.expander("➕ LOG NEW TRADE", expanded=False):

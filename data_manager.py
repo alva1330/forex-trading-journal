@@ -29,6 +29,28 @@ def list_accounts():
         # Fallback to Sheet1 if listing fails to keep the app alive
         return ["Sheet1"]
 
+def delete_account(name):
+    """Delete an account (worksheet) from the Google Sheet."""
+    try:
+        # Get credentials dictionary from Streamlit secrets
+        creds_dict = dict(st.secrets["connections"]["gsheets"])
+        url = creds_dict.pop("spreadsheet", None)
+        
+        # Authorize directly with gspread
+        gc = gspread.service_account_from_dict(creds_dict)
+        sh = gc.open_by_url(url)
+        
+        # Find and delete the worksheet
+        worksheet = sh.worksheet(name)
+        sh.del_worksheet(worksheet)
+        
+        # Clear all caches
+        st.cache_data.clear()
+        return True
+    except Exception as e:
+        st.error(f"SYSTEM ERROR: {e}")
+        return False
+
 def create_account(name):
     """Create a new account (worksheet) with headers."""
     try:

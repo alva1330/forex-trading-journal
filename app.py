@@ -47,7 +47,12 @@ with st.sidebar.expander("🏢 ACCOUNT MANAGEMENT", expanded=False):
         st.session_state.active_account = accounts[0]
         
     active_acc = st.selectbox("SELECT ACTIVE ACCOUNT", accounts, index=current_index)
-    st.session_state.active_account = active_acc
+    
+    # Switch logic: Update balance only when account actually changes
+    if active_acc != st.session_state.active_account:
+        st.session_state.active_account = active_acc
+        st.session_state.starting_balance = get_starting_balance(active_acc)
+        st.rerun()
     
     # Create New Account
     st.markdown("---")

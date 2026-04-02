@@ -125,7 +125,13 @@ st.sidebar.markdown("---")
 with st.sidebar.expander("⚙️ SETTINGS"):
     st.markdown("### ACCOUNT SETTINGS")
     current_sb = get_starting_balance(st.session_state.active_account)
-    sb_input = st.number_input("Starting Capital ($)", value=float(current_sb), step=100.0)
+    # Using a dynamic key makes sure this box 'resets' when you switch accounts!
+    sb_input = st.number_input(
+        "Starting Capital ($)", 
+        value=float(current_sb), 
+        step=100.0,
+        key=f"sb_input_{st.session_state.active_account}"
+    )
     if st.button("SAVE INITIAL BALANCE"):
         set_starting_balance(st.session_state.active_account, sb_input)
         st.session_state.starting_balance = sb_input  # FORCE REFRESH APP MEMORY

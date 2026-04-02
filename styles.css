@@ -162,4 +162,4 @@ h1 {
 /* --- Remove Streamlit Branding --- */
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
-header {visibility: hidden;}
+/* header {visibility: hidden;}  <- REMOVED THIS TO SHOW SIDEBAR BUTTON */

@@ -49,9 +49,8 @@ def init_db():
 # Initialize DB on import
 init_db()
 
-@st.cache_data(ttl=600)
 def list_accounts():
-    """List all accounts from the database."""
+    """List all accounts from the database. No cache to ensure instant updates."""
     conn = sqlite3.connect(DB_PATH)
     df = pd.read_sql_query("SELECT name FROM accounts", conn)
     conn.close()

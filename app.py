@@ -211,44 +211,6 @@ if not df.empty:
         )
         st.plotly_chart(fig_pair, use_container_width=True, theme=None)
         st.markdown('</div>', unsafe_allow_html=True)
-
-    # --- Feature 3: Trading Sessions ---
-    st.markdown("### 🕒 SESSION PERFORMANCE (UTC)")
-    
-    def get_session(dt):
-        try:
-            hour = pd.to_datetime(dt).hour
-            if 0 <= hour < 8: return "🌏 ASIA"
-            elif 8 <= hour < 15: return "🏛️ LONDON"
-            elif 15 <= hour < 22: return "🗽 NYC"
-            else: return "🌙 OTHER"
-        except:
-            return "❓ UNKNOWN"
-
-    with st.container():
-        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-        df_session = df.copy()
-        df_session["Session"] = df_session["Timestamp"].apply(get_session)
-        # Group for donut
-        df_session_stats = df_session.groupby("Session")["Profit"].sum().reset_index()
-        
-        fig_session = px.pie(
-            df_session_stats, 
-            values="Profit", 
-            names="Session",
-            hole=0.5,
-            template="plotly_dark",
-            color_discrete_sequence=["#00ffa3", "#00d4ff", "#ff4b4b", "#888"]
-        )
-        fig_session.update_layout(
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            margin=dict(l=10, r=10, t=30, b=10),
-            showlegend=True,
-            legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5)
-        )
-        st.plotly_chart(fig_session, use_container_width=True, theme=None)
-        st.markdown('</div>', unsafe_allow_html=True)
 else:
     st.info("NO TRADE DATA DETECTED. INITIALIZE LOG IN SIDEBAR.")
 

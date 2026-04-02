@@ -51,15 +51,15 @@ if "starting_balance" not in st.session_state:
 # --- Sidebar Data Fetch ---
 df = load_trades(st.session_state.active_account)
 
-# --- App Header (Lumina Style) ---
+# --- App Header (Ozymandias Style) ---
 h_col1, h_col2 = st.columns([2, 1])
 with h_col1:
     st.markdown(f"""
         <div style="display: flex; align-items: center; gap: 20px;">
-            <h1 style="margin: 0; padding: 0;">Lumina Journal</h1>
+            <h1 style="margin: 0; padding: 0;">Ozymandias Journal</h1>
             <div class="status-badge">
                 <div class="status-dot"></div>
-                PRO TERMINAL
+                OZY TERMINAL
             </div>
         </div>
     """, unsafe_allow_html=True)

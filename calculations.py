@@ -5,7 +5,18 @@ def calculate_pips(pair: str, entry: float, exit: float, trade_type: str) -> flo
     Others: 0.0001 is 1 pip.
     """
     is_jpy = "JPY" in pair.upper()
-    multiplier = 100 if is_jpy else 10000
+    is_gold = "XAU" in pair.upper() or "GOLD" in pair.upper()
+    
+    # Institutional Multipliers:
+    # JPY: 0.01 = 1 pip (*100)
+    # Gold: 0.10 = 1 pip (*10)
+    # Others: 0.0001 = 1 pip (*10000)
+    if is_jpy:
+        multiplier = 100
+    elif is_gold:
+        multiplier = 10
+    else:
+        multiplier = 10000
     
     if trade_type.lower() == "buy":
         pips = (exit - entry) * multiplier

@@ -256,8 +256,8 @@ with m_col3:
         </div>
     """, unsafe_allow_html=True)
 
-# 📈 Performance Analytics (Institutional Equity Curve)
-st.markdown("### Equity Curve Performance")
+# 📈 Performance Analytics (Institutional Trading Growth)
+st.markdown("### Trading Growth Curve")
 if not df.empty:
     df_curve = df.copy()
     df_curve['Timestamp'] = pd.to_datetime(df_curve['Timestamp'])
@@ -275,52 +275,67 @@ if not df.empty:
     }])
     df_curve = pd.concat([first_row, df_curve], ignore_index=True)
     
-    # Determine the color of each segment for the "Glow"
-    # (Simplified: Green if CURRENT balance is above start, else Red)
+    # Formatting X-axis for that "Jan 31" look
+    df_curve['DateStr'] = df_curve['Timestamp'].dt.strftime('%b %d')
+    
     line_color = "#10b981" if current_bal >= start_bal else "#ef4444"
+    fill_color = "rgba(16, 185, 129, 0.05)" if current_bal >= start_bal else "rgba(239, 68, 68, 0.05)"
     
     with st.container():
         st.markdown('<div class="lumina-card">', unsafe_allow_html=True)
         import plotly.graph_objects as go
         
-        fig_curve = go.Figure()
+        fig_growth = go.Figure()
         
-        # Add the main equity line
-        fig_curve.add_trace(go.Scatter(
+        # Add the professional Spline Curve
+        fig_growth.add_trace(go.Scatter(
             x=df_curve['Timestamp'],
             y=df_curve['Balance'],
             mode='lines+markers',
             name='Account Balance',
-            line=dict(color=line_color, width=3),
-            marker=dict(size=6, color=line_color),
+            line=dict(color=line_color, width=3, shape='spline', smoothing=1.3, dash='dash'),
+            marker=dict(size=8, color=line_color, symbol='circle', line=dict(color="white", width=1)),
             fill='tozeroy', 
-            fillcolor="rgba(16, 185, 129, 0.1)" if current_bal >= start_bal else "rgba(239, 68, 68, 0.1)",
+            fillcolor=fill_color,
             hovertemplate="<b>Date:</b> %{x}<br><b>Balance:</b> $%{y:,.2f}<extra></extra>"
         ))
         
-        # Add a baseline at starting capital
-        fig_curve.add_hline(
+        # Add the institutional Baseline
+        fig_growth.add_hline(
             y=start_bal, 
-            line_dash="dash", 
-            line_color="rgba(255,255,255,0.2)",
-            annotation_text="STARTING CAPITAL", 
+            line_dash="dot", 
+            line_color="rgba(255,255,255,0.15)",
+            annotation_text="STARTING POINT", 
             annotation_position="bottom right"
         )
         
-        fig_curve.update_layout(
+        fig_growth.update_layout(
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
             margin=dict(l=10, r=10, t=10, b=10),
-            xaxis=dict(showgrid=False, title=None, color="#94a3b8"),
-            yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.05)", title=None, color="#94a3b8"),
+            xaxis=dict(
+                showgrid=True, 
+                gridcolor="rgba(255,255,255,0.03)", 
+                title=None, 
+                color="#94a3b8",
+                tickformat="%b %d"
+            ),
+            yaxis=dict(
+                showgrid=True, 
+                gridcolor="rgba(255,255,255,0.03)", 
+                title=None, 
+                color="#94a3b8",
+                tickprefix="$",
+                tickformat=",."
+            ),
             showlegend=False,
-            height=350
+            height=380
         )
         
-        st.plotly_chart(fig_curve, use_container_width=True, theme=None)
+        st.plotly_chart(fig_growth, use_container_width=True, theme=None)
         st.markdown('</div>', unsafe_allow_html=True)
 else:
-    st.info("Log your first trade to see the Equity Curve.")
+    st.info("Log your first trade to see the Growth Curve.")
 
 # 📊 Recent Trade Log
 st.markdown("### Recent Trade Log")

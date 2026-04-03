@@ -5,7 +5,7 @@ from datetime import datetime
 import os
 
 DB_PATH = "trades.db"
-COLUMNS = ["Timestamp", "Pair", "Type", "Entry", "Exit", "Lot Size", "Pips", "Profit", "Notes", "Image"]
+COLUMNS = ["Entry Date", "Exit Date", "Pair", "Type", "Entry", "Exit", "Lot Size", "Pips", "Profit", "Notes", "Image"]
 
 def init_db():
     """Initialize the SQLite database with required tables."""
@@ -25,7 +25,8 @@ def init_db():
         CREATE TABLE IF NOT EXISTS trades (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             account_name TEXT,
-            timestamp TEXT,
+            entry_date TEXT,
+            exit_date TEXT,
             pair TEXT,
             type TEXT,
             entry REAL,
@@ -38,6 +39,14 @@ def init_db():
             FOREIGN KEY (account_name) REFERENCES accounts (name)
         )
     ''')
+    
+    # MIGRATION: Check if 'timestamp' exists and rename it to 'entry_date'
+    cursor.execute("PRAGMA table_info(trades)")
+    cols = [c[1] for c in cursor.fetchall()]
+    if 'timestamp' in cols:
+        cursor.execute("ALTER TABLE trades RENAME COLUMN timestamp TO entry_date")
+    if 'exit_date' not in cols:
+        cursor.execute("ALTER TABLE trades ADD COLUMN exit_date TEXT")
     
     # Ensure at least one default account exists
     cursor.execute("SELECT COUNT(*) FROM accounts")
@@ -106,10 +115,10 @@ def delete_account(name):
 def load_trades(account_name="Sheet1"):
     """Load trades for a specific account, formatted as a DataFrame."""
     conn = sqlite3.connect(DB_PATH)
-    # Mapping SQL columns (lowercase) to App columns (Capitalized) to avoid KeyErrors
     query = """
         SELECT 
-            timestamp as 'Timestamp', 
+            entry_date as 'Entry Date', 
+            exit_date as 'Exit Date',
             pair as 'Pair', 
             type as 'Type', 
             entry as 'Entry', 
@@ -128,16 +137,20 @@ def load_trades(account_name="Sheet1"):
         return pd.DataFrame(columns=COLUMNS)
     return df
 
-def add_trade(account_name, pair, trade_type, entry, exit, lot_size, pips, profit, notes, image_path=None):
-    """Log a new trade to the database with optional screenshot."""
+def add_trade(account_name, pair, trade_type, entry, exit, lot_size, pips, profit, notes, image_path=None, entry_date=None, exit_date=None):
+    """Log a new trade to the database with optional screenshot and dates."""
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Default to Now if dates are empty
+        if entry_date is None:
+            entry_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
         cursor.execute('''
-            INSERT INTO trades (account_name, timestamp, pair, type, entry, exit, lot_size, pips, profit, notes, image_path)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (account_name, timestamp, pair.upper(), trade_type.capitalize(), entry, exit, lot_size, pips, profit, notes, image_path))
+            INSERT INTO trades (account_name, entry_date, exit_date, pair, type, entry, exit, lot_size, pips, profit, notes, image_path)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (account_name, entry_date, exit_date, pair.upper(), trade_type.capitalize(), entry, exit, lot_size, pips, profit, notes, image_path))
         conn.commit()
         conn.close()
         return True
@@ -166,7 +179,9 @@ def update_trade(account_name, index, updated_fields):
                 "Pips": "pips",
                 "Profit": "profit",
                 "Notes": "notes",
-                "Image": "image_path"
+                "Image": "image_path",
+                "Entry Date": "entry_date",
+                "Exit Date": "exit_date"
             }
             
             for key, val in updated_fields.items():

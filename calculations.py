@@ -18,6 +18,9 @@ def calculate_pips(pair: str, entry: float, exit: float, trade_type: str) -> flo
     else:
         multiplier = 10000
     
+    if not exit or exit == 0:
+        return 0.0
+        
     if trade_type.lower() == "buy":
         pips = (exit - entry) * multiplier
     else:
@@ -29,6 +32,9 @@ def calculate_profit(pips: float, lot_size: float) -> float:
     """
     Calculate profit in USD.
     Standard Lot (1.0) = $10 per pip.
+    Returns 0.0 if pips are 0 (open position).
     """
+    if not pips:
+        return 0.0
     profit = pips * lot_size * 10
     return round(profit, 2)

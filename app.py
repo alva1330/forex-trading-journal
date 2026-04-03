@@ -28,9 +28,25 @@ def show_trade_dialog(account_name):
     with st.form("trade_form", clear_on_submit=True):
         pair = st.text_input("Pair (e.g. EUR/USD)", value="EUR/USD")
         trade_type = st.selectbox("Action", ["Buy", "Sell"])
+        
         c1, c2 = st.columns(2)
-        entry_price = c1.number_input("Entry", format="%.5f", step=0.0001)
-        exit_price = c2.number_input("Exit", format="%.5f", step=0.0001)
+        entry_price = c1.number_input("Entry Price", format="%.5f", step=0.0001)
+        exit_price = c2.number_input("Exit Price (Optional)", value=0.0, format="%.5f", step=0.0001, help="Leave at 0.0 if the trade is still OPEN.")
+        
+        d1, d2 = st.columns(2)
+        entry_date = d1.date_input("Entry Date", datetime.now())
+        entry_time = d1.time_input("Entry Time", datetime.now().time())
+        
+        exit_date = None
+        is_open = exit_price == 0.0
+        
+        if not is_open:
+            exit_date_val = d2.date_input("Exit Date", datetime.now())
+            exit_time_val = d2.time_input("Exit Time", datetime.now().time())
+            exit_date = datetime.combine(exit_date_val, exit_time_val).strftime("%Y-%m-%d %H:%M:%S")
+
+        entry_dt = datetime.combine(entry_date, entry_time).strftime("%Y-%m-%d %H:%M:%S")
+        
         lot_size = st.number_input("Lot Size", min_value=0.01, value=1.0, step=0.1)
         notes = st.text_area("Notes")
         uploaded_file = st.file_uploader("Attach Screenshot", type=['png', 'jpg', 'jpeg'])
@@ -38,20 +54,29 @@ def show_trade_dialog(account_name):
         if st.form_submit_button("COMMIT TRADE", use_container_width=True):
             img_path = None
             if uploaded_file is not None:
-                # Create screenshots dir if missing
                 os.makedirs("screenshots", exist_ok=True)
-                # Generate unique filename
                 file_ext = uploaded_file.name.split('.')[-1]
                 file_name = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}.{file_ext}"
                 img_path = os.path.join("screenshots", file_name)
-                # Save file locally
                 with open(img_path, "wb") as f:
                     f.write(uploaded_file.getbuffer())
             
-            pips = calculate_pips(pair, entry_price, exit_price, trade_type)
-            profit = calculate_profit(pips, lot_size)
-            add_trade(account_name, pair, trade_type, entry_price, exit_price, lot_size, pips, profit, notes, image_path=img_path)
-            st.success("TRADE RECORDED")
+            pips = 0.0
+            profit = 0.0
+            if not is_open:
+                pips = calculate_pips(pair, entry_price, exit_price, trade_type)
+                profit = calculate_profit(pips, lot_size)
+            
+            # Save to DB
+            add_trade(
+                account_name, pair, trade_type, entry_price, 
+                None if is_open else exit_price, 
+                lot_size, pips, profit, notes, 
+                image_path=img_path,
+                entry_date=entry_dt,
+                exit_date=exit_date
+            )
+            st.success("OPEN POSITION LOGGED" if is_open else "TRADE FINALIZED")
             st.rerun()
 
 # --- Data Initialization ---
@@ -109,7 +134,7 @@ st.sidebar.markdown("---")
 
 with st.sidebar.expander("📝 EDIT / DELETE"):
     if not df.empty:
-        trade_options = [f"{i}: {row['Pair']} ({row['Timestamp']})" for i, row in df.iterrows()]
+        trade_options = [f"{i}: {row['Pair']} (E: {row['Entry Date']})" for i, row in df.iterrows()]
         trade_options.reverse()
         selected_option = st.selectbox("SELECT TRADE", trade_options)
         edit_idx = int(selected_option.split(":")[0])
@@ -118,26 +143,48 @@ with st.sidebar.expander("📝 EDIT / DELETE"):
         with st.form(f"edit_form_{edit_idx}"):
             e_pair = st.text_input("Pair", value=t_data["Pair"])
             e_action = st.selectbox("Action", ["Buy", "Sell"], index=0 if t_data["Type"] == "Buy" else 1)
-            e_entry = st.number_input("Entry", value=float(t_data["Entry"]), format="%.5f")
-            e_exit = st.number_input("Exit", value=float(t_data["Exit"]), format="%.5f")
+            
+            c1, c2 = st.columns(2)
+            e_entry = c1.number_input("Entry", value=float(t_data["Entry"]), format="%.5f")
+            
+            # Handle potentially empty exit price
+            exit_val = float(t_data["Exit"]) if pd.notna(t_data["Exit"]) else 0.0
+            e_exit = c2.number_input("Exit", value=exit_val, format="%.5f", help="Set to 0.0 to keep OPEN.")
+            
             e_lot = st.number_input("Lots", value=float(t_data["Lot Size"]))
-            e_img = st.file_uploader("Update/Add Screenshot", type=['png', 'jpg', 'jpeg'], key=f"edit_img_{edit_idx}")
+            
+            e_entry_date = st.text_input("Entry Date", value=t_data["Entry Date"])
+            e_exit_date = st.text_input("Exit Date", value=str(t_data["Exit Date"]) if pd.notna(t_data["Exit Date"]) else "")
+            
+            e_img = st.file_uploader("Update Screenshot", type=['png', 'jpg', 'jpeg'], key=f"edit_img_{edit_idx}")
             
             if st.form_submit_button("UPDATE"):
-                new_pips = calculate_pips(e_pair, e_entry, e_exit, e_action)
-                new_profit = calculate_profit(new_pips, e_lot)
+                is_closing = e_exit != 0.0 and (pd.isna(t_data["Exit"]) or t_data["Exit"] == 0)
+                
+                new_pips = 0.0
+                new_profit = 0.0
+                if e_exit != 0.0:
+                    new_pips = calculate_pips(e_pair, e_entry, e_exit, e_action)
+                    new_profit = calculate_profit(new_pips, e_lot)
+                
                 update_fields = {
                     "Pair": e_pair.upper(), 
                     "Type": e_action.capitalize(), 
                     "Entry": e_entry, 
-                    "Exit": e_exit, 
+                    "Exit": None if e_exit == 0.0 else e_exit, 
                     "Lot Size": e_lot, 
                     "Pips": new_pips, 
-                    "Profit": new_profit
+                    "Profit": new_profit,
+                    "Entry Date": e_entry_date
                 }
                 
+                # If finalizing an open trade, set exit date to now unless manually edited
+                if is_closing and not e_exit_date:
+                    update_fields["Exit Date"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                elif e_exit_date:
+                    update_fields["Exit Date"] = e_exit_date
+                
                 if e_img:
-                    # Save the new screenshot
                     os.makedirs("screenshots", exist_ok=True)
                     file_ext = e_img.name.split('.')[-1]
                     file_name = f"update_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:4]}.{file_ext}"
@@ -147,7 +194,7 @@ with st.sidebar.expander("📝 EDIT / DELETE"):
                     update_fields["Image"] = img_path
                 
                 update_trade(st.session_state.active_account, edit_idx, update_fields)
-                st.success("UPDATED")
+                st.success("UPDATED" if not is_closing else "POSITION CLOSED")
                 st.rerun()
         
         if st.checkbox("Check to Enable Delete"):
@@ -204,18 +251,40 @@ if st.sidebar.button("🔄 REFRESH DATABASE", use_container_width=True):
     st.session_state.accounts = list_accounts()
     st.rerun()
 
-# --- Main Analytics Dashboard ---
+# --- Main Analytics Dashboard (Closed Trades Only) ---
 start_bal = float(st.session_state.starting_balance)
 
-if not df.empty:
-    total_trades = len(df)
-    total_profit = df["Profit"].sum()
+# Filter for metrics
+closed_df = df[df["Exit"].notna() & (df["Exit"] != 0)]
+open_df = df[df["Exit"].isna() | (df["Exit"] == 0)]
+
+if not open_df.empty:
+    st.markdown("### 🎯 ACTIVE SWINGS")
+    for idx, row in open_df.iterrows():
+        with st.container():
+            st.markdown(f"""
+                <div class="lumina-card" style="border-left: 4px solid var(--primary); margin-bottom: 10px; padding: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <span style="color: var(--primary); font-weight: 700;">{row['Pair']}</span>
+                            <span style="color: var(--text-dim); margin-left: 10px;">{row['Type']} @ {row['Entry']:.5f}</span>
+                        </div>
+                        <div style="text-align: right;">
+                            <span style="color: var(--text-dim); font-size: 0.8rem;">ENTRY: {row['Entry Date']}</span>
+                        </div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+
+if not closed_df.empty:
+    total_trades = len(closed_df)
+    total_profit = closed_df["Profit"].sum()
     current_bal = start_bal + total_profit
-    wins = len(df[df["Profit"] > 0])
+    wins = len(closed_df[closed_df["Profit"] > 0])
     win_rate = (wins / total_trades) * 100 if total_trades > 0 else 0
-    profit_factor = abs(df[df["Profit"] > 0]["Profit"].sum() / df[df["Profit"] < 0]["Profit"].sum()) if not df[df["Profit"] < 0].empty else 1.0
 else:
-    total_trades, total_profit, current_bal, win_rate, profit_factor = 0, 0, start_bal, 0, 0
+    total_trades, total_profit, current_bal, win_rate = 0, 0, start_bal, 0
 
 # 💎 Top Metric Cards
 m_col1, m_col2, m_col3 = st.columns(3)
@@ -254,9 +323,9 @@ with m_col3:
 
 # 📈 Performance Analytics (Institutional Trading Growth)
 st.markdown("### Trading Growth Curve")
-if not df.empty:
-    df_curve = df.copy()
-    df_curve['Timestamp'] = pd.to_datetime(df_curve['Timestamp'])
+if not closed_df.empty:
+    df_curve = closed_df.copy()
+    df_curve['Timestamp'] = pd.to_datetime(df_curve['Entry Date'])
     df_curve = df_curve.sort_values('Timestamp')
     
     # Calculate Cumulative Balance
@@ -353,11 +422,14 @@ if search_col2.button("➕ NEW TRADE", use_container_width=True):
 
 if not df.empty:
     filtered_df = df[df["Pair"].str.contains(search_term) | df["Type"].str.contains(search_term)] if search_term else df
-    display_df = filtered_df.sort_values(by="Timestamp", ascending=False).head(10)
+    display_df = filtered_df.sort_values(by="Entry Date", ascending=False).head(10).copy()
+    
+    # Format Profit for display
+    display_df['Status'] = display_df.apply(lambda x: f"${x['Profit']:,.2f}" if pd.notna(x['Exit']) and x['Exit'] != 0 else "🟢 OPEN", axis=1)
     
     # Render table (excluding the raw Image path for clean look)
     st.dataframe(
-        display_df[["Timestamp", "Pair", "Type", "Entry", "Exit", "Profit"]], 
+        display_df[["Entry Date", "Exit Date", "Pair", "Type", "Entry", "Exit", "Status"]], 
         use_container_width=True,
         hide_index=True
     )
@@ -368,12 +440,12 @@ if not df.empty:
         # Filter only trades that have an image
         trades_with_img = display_df[display_df["Image"].notna()]
         if not trades_with_img.empty:
-            img_options = [f"{row['Timestamp']} - {row['Pair']}" for _, row in trades_with_img.iterrows()]
+            img_options = [f"{row['Entry Date']} - {row['Pair']}" for _, row in trades_with_img.iterrows()]
             selected_img = st.selectbox("Select Trade to View Screenshot", img_options)
             
             # Find the path for the selected trade
-            selected_timestamp = selected_img.split(" - ")[0]
-            img_path = trades_with_img[trades_with_img["Timestamp"] == selected_timestamp]["Image"].values[0]
+            selected_date = selected_img.split(" - ")[0]
+            img_path = trades_with_img[trades_with_img["Entry Date"] == selected_date]["Image"].values[0]
             
             if os.path.exists(img_path):
                 st.image(img_path, use_container_width=True, caption=f"Analysis for {selected_img}")

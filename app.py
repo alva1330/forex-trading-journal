@@ -331,10 +331,17 @@ if not df.empty:
                 tickformat=",."
             ),
             showlegend=False,
-            height=380
+            height=380,
+            dragmode='pan' # Default to panning mode (like MT5/TradingView)
         )
         
-        st.plotly_chart(fig_growth, use_container_width=True, theme=None)
+        # Enable Scroll Zoom and Hide the "Cluster" of buttons (Modebar)
+        st.plotly_chart(
+            fig_growth, 
+            use_container_width=True, 
+            theme=None, 
+            config={'scrollZoom': True, 'displayModeBar': False}
+        )
         st.markdown('</div>', unsafe_allow_html=True)
 else:
     st.info("Log your first trade to see the Growth Curve.")

@@ -5,8 +5,7 @@ import os
 import uuid
 from datetime import datetime
 from calculations import calculate_pips, calculate_profit
-from data_manager import load_trades, add_trade, update_trade, delete_trade, list_accounts, create_account, delete_account, get_starting_balance, set_starting_balance, check_trade_exists
-from broker_sync import get_active_account_info, fetch_mt5_history
+from data_manager import load_trades, add_trade, update_trade, delete_trade, list_accounts, create_account, delete_account, get_starting_balance, set_starting_balance
 
 # Configuration
 st.set_page_config(
@@ -176,48 +175,6 @@ with st.sidebar.expander("⚙️ SETTINGS"):
         st.session_state.starting_balance = sb_input  # FORCE REFRESH APP MEMORY
         st.success("BALANCE UPDATED")
         st.rerun()
-    
-    st.markdown("---")
-    st.markdown("### 🔗 BROKER SYNC")
-    
-    if st.button("🔄 SYNC ACTIVE MT5", use_container_width=True):
-        with st.spinner("Connecting to MetaTrader 5..."):
-            acc_info = get_active_account_info()
-            if acc_info:
-                login_str = f"Account #{acc_info['login']}"
-                
-                # 1. Auto-Create account if missing
-                if login_str not in st.session_state.accounts:
-                    create_account(login_str)
-                    st.session_state.accounts = list_accounts()
-                
-                # 2. Auto-Switch to this account
-                st.session_state.active_account = login_str
-                
-                # 3. Auto-Sync Balance
-                set_starting_balance(login_str, acc_info['balance'])
-                st.session_state.starting_balance = acc_info['balance']
-                
-                # 4. Pull Trade History
-                history = fetch_mt5_history(days=30)
-                new_trades_count = 0
-                for t in history:
-                    if not check_trade_exists(t['ticket']):
-                        # Re-calculate pips for our system to be consistent
-                        pips = calculate_pips(t['pair'], t['entry'], t['exit'], t['type'])
-                        add_trade(
-                            login_str, t['pair'], t['type'], t['entry'], t['exit'], 
-                            t['lot_size'], pips, t['profit'], t['notes'], 
-                            mt5_ticket=t['ticket']
-                        )
-                        new_trades_count += 1
-                
-                st.success(f"SYNCED {login_str}")
-                if new_trades_count > 0:
-                    st.info(f"IMPORTED {new_trades_count} NEW TRADES")
-                st.rerun()
-            else:
-                st.error("COULD NOT CONNECT TO MT5. ENSURE TERMINAL IS OPEN!")
     
     st.markdown("---")
     st.markdown("### 🏢 ACCOUNT MANAGEMENT")

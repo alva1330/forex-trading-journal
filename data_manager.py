@@ -5,7 +5,7 @@ from datetime import datetime
 import os
 
 DB_PATH = "trades.db"
-COLUMNS = ["Timestamp", "Pair", "Type", "Entry", "Exit", "Lot Size", "Pips", "Profit", "Notes", "Image", "MT5 Ticket"]
+COLUMNS = ["Timestamp", "Pair", "Type", "Entry", "Exit", "Lot Size", "Pips", "Profit", "Notes", "Image"]
 
 def init_db():
     """Initialize the SQLite database with required tables."""
@@ -35,7 +35,6 @@ def init_db():
             profit REAL,
             notes TEXT,
             image_path TEXT,
-            mt5_ticket INTEGER,
             FOREIGN KEY (account_name) REFERENCES accounts (name)
         )
     ''')
@@ -119,8 +118,7 @@ def load_trades(account_name="Sheet1"):
             pips as 'Pips', 
             profit as 'Profit', 
             notes as 'Notes',
-            image_path as 'Image',
-            mt5_ticket as 'MT5 Ticket'
+            image_path as 'Image'
         FROM trades 
         WHERE account_name = ?
     """
@@ -130,32 +128,21 @@ def load_trades(account_name="Sheet1"):
         return pd.DataFrame(columns=COLUMNS)
     return df
 
-def add_trade(account_name, pair, trade_type, entry, exit, lot_size, pips, profit, notes, image_path=None, mt5_ticket=None):
-    """Log a new trade to the database with optional screenshot and broker ticket."""
+def add_trade(account_name, pair, trade_type, entry, exit, lot_size, pips, profit, notes, image_path=None):
+    """Log a new trade to the database with optional screenshot."""
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         cursor.execute('''
-            INSERT INTO trades (account_name, timestamp, pair, type, entry, exit, lot_size, pips, profit, notes, image_path, mt5_ticket)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (account_name, timestamp, pair.upper(), trade_type.capitalize(), entry, exit, lot_size, pips, profit, notes, image_path, mt5_ticket))
+            INSERT INTO trades (account_name, timestamp, pair, type, entry, exit, lot_size, pips, profit, notes, image_path)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (account_name, timestamp, pair.upper(), trade_type.capitalize(), entry, exit, lot_size, pips, profit, notes, image_path))
         conn.commit()
         conn.close()
         return True
     except Exception:
         return False
-
-def check_trade_exists(mt5_ticket):
-    """Check if a trade with this ticket already exists in the database."""
-    if mt5_ticket is None:
-        return False
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT id FROM trades WHERE mt5_ticket = ?", (mt5_ticket,))
-    result = cursor.fetchone()
-    conn.close()
-    return result is not None
 
 def update_trade(account_name, index, updated_fields):
     """Update a specific trade. Since we use a list in the UI, we find the nth trade and update it."""

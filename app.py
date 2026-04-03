@@ -195,13 +195,20 @@ with st.sidebar.expander("⚙️ SETTINGS"):
             
     # Delete Account
     st.markdown("<br>", unsafe_allow_html=True)
-    if st.session_state.active_account != "Sheet1": # Don't delete the default
-        if st.checkbox("Confirm Delete Active Account"):
-            if st.button("🗑️ DELETE THIS ACCOUNT", type="primary"):
-                delete_account(st.session_state.active_account)
-                st.session_state.accounts = list_accounts()
+    st.markdown("### 🗑️ DELETE ACCOUNT")
+    delete_options = [acc for acc in st.session_state.accounts if acc != "Sheet1"]
+    if delete_options:
+        to_delete = st.selectbox("SELECT ACCOUNT TO REMOVE", delete_options)
+        if st.button("🗑️ DELETE PERMANENTLY", type="primary", use_container_width=True):
+            delete_account(to_delete)
+            # Update state after deletion
+            st.session_state.accounts = list_accounts()
+            if st.session_state.active_account == to_delete:
                 st.session_state.active_account = st.session_state.accounts[0]
-                st.rerun()
+            st.success(f"ACCOUNT '{to_delete}' DELETED")
+            st.rerun()
+    else:
+        st.info("NO ADDITIONAL ACCOUNTS TO DELETE.")
     
     st.markdown("---")
     if st.button("🔄 REFRESH DATABASE"):

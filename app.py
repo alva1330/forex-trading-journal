@@ -160,10 +160,9 @@ with st.sidebar.expander("📝 EDIT / DELETE"):
                 st.rerun()
 
 st.sidebar.markdown("---")
-with st.sidebar.expander("⚙️ SETTINGS"):
-    st.markdown("### ACCOUNT SETTINGS")
+st.sidebar.markdown("---")
+with st.sidebar.expander("💰 BALANCE SETTINGS"):
     current_sb = get_starting_balance(st.session_state.active_account)
-    # Using a dynamic key makes sure this box 'resets' when you switch accounts!
     sb_input = st.number_input(
         "Starting Capital ($)", 
         value=float(current_sb), 
@@ -172,14 +171,11 @@ with st.sidebar.expander("⚙️ SETTINGS"):
     )
     if st.button("SAVE INITIAL BALANCE"):
         set_starting_balance(st.session_state.active_account, sb_input)
-        st.session_state.starting_balance = sb_input  # FORCE REFRESH APP MEMORY
+        st.session_state.starting_balance = sb_input
         st.success("BALANCE UPDATED")
         st.rerun()
-    
-    st.markdown("---")
-    st.markdown("### 🏢 ACCOUNT MANAGEMENT")
-    
-    # Create Account
+
+with st.sidebar.expander("🏢 CREATE ACCOUNT"):
     new_acc_name = st.text_input("New Account Name", placeholder="e.g. Funding Challenge")
     if st.button("➕ CREATE ACCOUNT"):
         if new_acc_name:
@@ -191,30 +187,26 @@ with st.sidebar.expander("⚙️ SETTINGS"):
             else:
                 st.error("ACCOUNT ALREADY EXISTS")
         else:
-            st.warning("ENTER A NAME First")
-            
-    # Delete Account
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("### 🗑️ DELETE ACCOUNT")
+            st.warning("ENTER A NAME")
+
+with st.sidebar.expander("🗑️ DELETE ACCOUNT"):
     delete_options = [acc for acc in st.session_state.accounts if acc != "Sheet1"]
     if delete_options:
         to_delete = st.selectbox("SELECT ACCOUNT TO REMOVE", delete_options)
         if st.button("🗑️ DELETE PERMANENTLY", type="primary", use_container_width=True):
             delete_account(to_delete)
-            # Update state after deletion
             st.session_state.accounts = list_accounts()
             if st.session_state.active_account == to_delete:
                 st.session_state.active_account = st.session_state.accounts[0]
             st.success(f"ACCOUNT '{to_delete}' DELETED")
             st.rerun()
     else:
-        st.info("NO ADDITIONAL ACCOUNTS TO DELETE.")
-    
-    st.markdown("---")
-    if st.button("🔄 REFRESH DATABASE"):
-        st.cache_data.clear()
-        st.session_state.accounts = list_accounts()
-        st.rerun()
+        st.info("NO ADDITIONAL ACCOUNTS")
+
+if st.sidebar.button("🔄 REFRESH DATABASE", use_container_width=True):
+    st.cache_data.clear()
+    st.session_state.accounts = list_accounts()
+    st.rerun()
 
 # --- Main Analytics Dashboard ---
 start_bal = float(st.session_state.starting_balance)

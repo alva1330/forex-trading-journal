@@ -5,6 +5,15 @@
 */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;600;700&display=swap');
 
+/* --- Global Reset & Streamlit Purge --- */
+header { display: none !important; }
+.stApp header { display: none !important; }
+.block-container {
+    padding-top: 0rem !important;
+    padding-bottom: 2rem !important;
+    max-width: 95% !important;
+}
+
 :root {
     --primary: #10b981;      /* Emerald */
     --secondary: #ef4444;    /* Rose Red */

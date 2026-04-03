@@ -312,19 +312,21 @@ if not df.empty:
         fig_growth.update_layout(
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
-            margin=dict(l=10, r=10, t=10, b=10),
+            margin=dict(l=60, r=20, t=20, b=30), # Increased margins for labels
             xaxis=dict(
                 showgrid=True, 
-                gridcolor="rgba(255,255,255,0.03)", 
+                gridcolor="rgba(255,255,255,0.05)", 
                 title=None, 
-                color="#94a3b8",
+                color="#cbd5e1", # Brighter slate
+                tickfont=dict(size=10),
                 tickformat="%b %d"
             ),
             yaxis=dict(
                 showgrid=True, 
-                gridcolor="rgba(255,255,255,0.03)", 
+                gridcolor="rgba(255,255,255,0.05)", 
                 title=None, 
-                color="#94a3b8",
+                color="#cbd5e1", # Brighter slate
+                tickfont=dict(size=10),
                 tickprefix="$",
                 tickformat=",."
             ),

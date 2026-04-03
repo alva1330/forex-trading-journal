@@ -256,42 +256,71 @@ with m_col3:
         </div>
     """, unsafe_allow_html=True)
 
-# 📈 Performance Analytics (Bar Chart Monthly)
+# 📈 Performance Analytics (Institutional Equity Curve)
 st.markdown("### Equity Curve Performance")
 if not df.empty:
-    df_chart = df.copy()
-    df_chart['Timestamp'] = pd.to_datetime(df_chart['Timestamp'])
-    df_chart['Month'] = df_chart['Timestamp'].dt.strftime('%b %Y')
+    df_curve = df.copy()
+    df_curve['Timestamp'] = pd.to_datetime(df_curve['Timestamp'])
+    df_curve = df_curve.sort_values('Timestamp')
     
-    # Group by month and calculate profit
-    df_monthly = df_chart.groupby('Month')['Profit'].sum().reset_index()
-    # Ensure correct month ordering by converting back to dt for sorting
-    df_monthly['sort_dt'] = pd.to_datetime(df_monthly['Month'])
-    df_monthly = df_monthly.sort_values('sort_dt')
+    # Calculate Cumulative Balance
+    df_curve['Cumulative Profit'] = df_curve['Profit'].cumsum()
+    df_curve['Balance'] = start_bal + df_curve['Cumulative Profit']
+    
+    # Add a starting point row at the exact starting capital
+    first_row = pd.DataFrame([{
+        'Timestamp': df_curve['Timestamp'].min() - pd.Timedelta(minutes=5),
+        'Balance': start_bal,
+        'Profit': 0
+    }])
+    df_curve = pd.concat([first_row, df_curve], ignore_index=True)
+    
+    # Determine the color of each segment for the "Glow"
+    # (Simplified: Green if CURRENT balance is above start, else Red)
+    line_color = "#10b981" if current_bal >= start_bal else "#ef4444"
     
     with st.container():
         st.markdown('<div class="lumina-card">', unsafe_allow_html=True)
-        fig_monthly = px.bar(
-            df_monthly,
-            x='Month',
-            y='Profit',
-            template="plotly_dark",
-            color='Profit',
-            color_continuous_scale=[[0, '#ef4444'], [0.5, '#ef4444'], [0.5, '#10b981'], [1, '#10b981']],
-            labels={'Profit': 'Monthly P/L ($)'}
+        import plotly.graph_objects as go
+        
+        fig_curve = go.Figure()
+        
+        # Add the main equity line
+        fig_curve.add_trace(go.Scatter(
+            x=df_curve['Timestamp'],
+            y=df_curve['Balance'],
+            mode='lines+markers',
+            name='Account Balance',
+            line=dict(color=line_color, width=3),
+            marker=dict(size=6, color=line_color),
+            fill='tozeroy', 
+            fillcolor="rgba(16, 185, 129, 0.1)" if current_bal >= start_bal else "rgba(239, 68, 68, 0.1)",
+            hovertemplate="<b>Date:</b> %{x}<br><b>Balance:</b> $%{y:,.2f}<extra></extra>"
+        ))
+        
+        # Add a baseline at starting capital
+        fig_curve.add_hline(
+            y=start_bal, 
+            line_dash="dash", 
+            line_color="rgba(255,255,255,0.2)",
+            annotation_text="STARTING CAPITAL", 
+            annotation_position="bottom right"
         )
-        fig_monthly.update_layout(
+        
+        fig_curve.update_layout(
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
-            margin=dict(l=10, r=10, t=20, b=10),
-            coloraxis_showscale=False,
-            xaxis=dict(showgrid=False, title=None),
-            yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.05)", title=None)
+            margin=dict(l=10, r=10, t=10, b=10),
+            xaxis=dict(showgrid=False, title=None, color="#94a3b8"),
+            yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.05)", title=None, color="#94a3b8"),
+            showlegend=False,
+            height=350
         )
-        st.plotly_chart(fig_monthly, use_container_width=True, theme=None)
+        
+        st.plotly_chart(fig_curve, use_container_width=True, theme=None)
         st.markdown('</div>', unsafe_allow_html=True)
 else:
-    st.info("Log your first trade to see performance data.")
+    st.info("Log your first trade to see the Equity Curve.")
 
 # 📊 Recent Trade Log
 st.markdown("### Recent Trade Log")

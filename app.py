@@ -126,10 +126,32 @@ with st.sidebar.expander("📝 EDIT / DELETE"):
             e_entry = st.number_input("Entry", value=float(t_data["Entry"]), format="%.5f")
             e_exit = st.number_input("Exit", value=float(t_data["Exit"]), format="%.5f")
             e_lot = st.number_input("Lots", value=float(t_data["Lot Size"]))
+            e_img = st.file_uploader("Update/Add Screenshot", type=['png', 'jpg', 'jpeg'], key=f"edit_img_{edit_idx}")
+            
             if st.form_submit_button("UPDATE"):
                 new_pips = calculate_pips(e_pair, e_entry, e_exit, e_action)
                 new_profit = calculate_profit(new_pips, e_lot)
-                update_trade(st.session_state.active_account, edit_idx, {"Pair": e_pair.upper(), "Type": e_action.capitalize(), "Entry": e_entry, "Exit": e_exit, "Lot Size": e_lot, "Pips": new_pips, "Profit": new_profit})
+                update_fields = {
+                    "Pair": e_pair.upper(), 
+                    "Type": e_action.capitalize(), 
+                    "Entry": e_entry, 
+                    "Exit": e_exit, 
+                    "Lot Size": e_lot, 
+                    "Pips": new_pips, 
+                    "Profit": new_profit
+                }
+                
+                if e_img:
+                    # Save the new screenshot
+                    os.makedirs("screenshots", exist_ok=True)
+                    file_ext = e_img.name.split('.')[-1]
+                    file_name = f"update_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:4]}.{file_ext}"
+                    img_path = os.path.join("screenshots", file_name)
+                    with open(img_path, "wb") as f:
+                        f.write(e_img.getbuffer())
+                    update_fields["Image"] = img_path
+                
+                update_trade(st.session_state.active_account, edit_idx, update_fields)
                 st.success("UPDATED")
                 st.rerun()
         

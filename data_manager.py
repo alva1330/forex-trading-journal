@@ -5,7 +5,7 @@ from datetime import datetime
 import os
 
 DB_PATH = "trades.db"
-COLUMNS = ["Timestamp", "Pair", "Type", "Entry", "Exit", "Lot Size", "Pips", "Profit", "Notes"]
+COLUMNS = ["Timestamp", "Pair", "Type", "Entry", "Exit", "Lot Size", "Pips", "Profit", "Notes", "Image"]
 
 def init_db():
     """Initialize the SQLite database with required tables."""
@@ -34,6 +34,7 @@ def init_db():
             pips REAL,
             profit REAL,
             notes TEXT,
+            image_path TEXT,
             FOREIGN KEY (account_name) REFERENCES accounts (name)
         )
     ''')
@@ -116,7 +117,8 @@ def load_trades(account_name="Sheet1"):
             lot_size as 'Lot Size', 
             pips as 'Pips', 
             profit as 'Profit', 
-            notes as 'Notes' 
+            notes as 'Notes',
+            image_path as 'Image' 
         FROM trades 
         WHERE account_name = ?
     """
@@ -126,16 +128,16 @@ def load_trades(account_name="Sheet1"):
         return pd.DataFrame(columns=COLUMNS)
     return df
 
-def add_trade(account_name, pair, trade_type, entry, exit, lot_size, pips, profit, notes):
-    """Log a new trade to the database."""
+def add_trade(account_name, pair, trade_type, entry, exit, lot_size, pips, profit, notes, image_path=None):
+    """Log a new trade to the database with optional screenshot path."""
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         cursor.execute('''
-            INSERT INTO trades (account_name, timestamp, pair, type, entry, exit, lot_size, pips, profit, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (account_name, timestamp, pair.upper(), trade_type.capitalize(), entry, exit, lot_size, pips, profit, notes))
+            INSERT INTO trades (account_name, timestamp, pair, type, entry, exit, lot_size, pips, profit, notes, image_path)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (account_name, timestamp, pair.upper(), trade_type.capitalize(), entry, exit, lot_size, pips, profit, notes, image_path))
         conn.commit()
         conn.close()
         return True
@@ -163,7 +165,8 @@ def update_trade(account_name, index, updated_fields):
                 "Lot Size": "lot_size",
                 "Pips": "pips",
                 "Profit": "profit",
-                "Notes": "notes"
+                "Notes": "notes",
+                "Image": "image_path"
             }
             
             for key, val in updated_fields.items():

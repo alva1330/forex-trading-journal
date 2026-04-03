@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import os
+import uuid
 from datetime import datetime
 from calculations import calculate_pips, calculate_profit
 from data_manager import load_trades, add_trade, update_trade, delete_trade, list_accounts, create_account, delete_account, get_starting_balance, set_starting_balance
@@ -31,10 +33,24 @@ def show_trade_dialog(account_name):
         exit_price = c2.number_input("Exit", format="%.5f", step=0.0001)
         lot_size = st.number_input("Lot Size", min_value=0.01, value=1.0, step=0.1)
         notes = st.text_area("Notes")
+        uploaded_file = st.file_uploader("Attach Screenshot", type=['png', 'jpg', 'jpeg'])
+        
         if st.form_submit_button("COMMIT TRADE", use_container_width=True):
+            img_path = None
+            if uploaded_file is not None:
+                # Create screenshots dir if missing
+                os.makedirs("screenshots", exist_ok=True)
+                # Generate unique filename
+                file_ext = uploaded_file.name.split('.')[-1]
+                file_name = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}.{file_ext}"
+                img_path = os.path.join("screenshots", file_name)
+                # Save file locally
+                with open(img_path, "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+            
             pips = calculate_pips(pair, entry_price, exit_price, trade_type)
             profit = calculate_profit(pips, lot_size)
-            add_trade(account_name, pair, trade_type, entry_price, exit_price, lot_size, pips, profit, notes)
+            add_trade(account_name, pair, trade_type, entry_price, exit_price, lot_size, pips, profit, notes, image_path=img_path)
             st.success("TRADE RECORDED")
             st.rerun()
 
@@ -268,12 +284,32 @@ if not df.empty:
     filtered_df = df[df["Pair"].str.contains(search_term) | df["Type"].str.contains(search_term)] if search_term else df
     display_df = filtered_df.sort_values(by="Timestamp", ascending=False).head(10)
     
-    # Render a cleaner dataframe
+    # Render table (excluding the raw Image path for clean look)
     st.dataframe(
         display_df[["Timestamp", "Pair", "Type", "Entry", "Exit", "Profit"]], 
         use_container_width=True,
         hide_index=True
     )
+    
+    # 🖼️ Screenshot Viewer Section
+    st.markdown("---")
+    with st.expander("🖼️ VIEW SCREENSHOTS"):
+        # Filter only trades that have an image
+        trades_with_img = display_df[display_df["Image"].notna()]
+        if not trades_with_img.empty:
+            img_options = [f"{row['Timestamp']} - {row['Pair']}" for _, row in trades_with_img.iterrows()]
+            selected_img = st.selectbox("Select Trade to View Screenshot", img_options)
+            
+            # Find the path for the selected trade
+            selected_timestamp = selected_img.split(" - ")[0]
+            img_path = trades_with_img[trades_with_img["Timestamp"] == selected_timestamp]["Image"].values[0]
+            
+            if os.path.exists(img_path):
+                st.image(img_path, use_container_width=True, caption=f"Analysis for {selected_img}")
+            else:
+                st.error("Screenshot file not found locally.")
+        else:
+            st.info("No screenshots available for recent trades.")
 else:
     st.write("No trades found.")
 st.markdown('</div>', unsafe_allow_html=True)

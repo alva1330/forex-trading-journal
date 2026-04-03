@@ -73,10 +73,6 @@ with h_col1:
     st.markdown(f"""
         <div style="display: flex; align-items: center; gap: 20px;">
             <h1 style="margin: 0; padding: 0;">Ozymandias Journal</h1>
-            <div class="status-badge">
-                <div class="status-dot"></div>
-                OZY TERMINAL
-            </div>
         </div>
     """, unsafe_allow_html=True)
 with h_col2:

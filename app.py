@@ -203,14 +203,6 @@ if active_acc != st.session_state.active_account:
     st.session_state.starting_balance = get_starting_balance(active_acc)
     st.rerun()
 
-st.sidebar.markdown("---")
-
-# Quick Actions (Sidebar Management Only)
-# LOG NEW TRADE REMOVED FROM SIDEBAR PER REQUEST
-# EDIT / DELETE REMOVED AND MOVED TO LOG PER REQUEST
-
-st.sidebar.markdown("---")
-st.sidebar.markdown("---")
 with st.sidebar.expander("💰 BALANCE SETTINGS"):
     current_sb = get_starting_balance(st.session_state.active_account)
     sb_input = st.number_input(

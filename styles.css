@@ -6,8 +6,19 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;600;700&display=swap');
 
 /* --- Global Reset & Streamlit Purge --- */
-header { display: none !important; }
-.stApp header { display: none !important; }
+/* Hide header background and right-side menu, but keep sidebar button accessible */
+header { background: transparent !important; }
+[data-testid="stHeader"] {
+    background: transparent !important;
+}
+[data-testid="stHeader"] > div:nth-child(1) {
+    /* This ensures the left side (sidebar button) remains */
+    visibility: visible !important;
+}
+#MainMenu, [data-testid="stToolbar"] {
+    /* This hides the right-side options menu */
+    visibility: hidden !important;
+}
 .block-container {
     padding-top: 0rem !important;
     padding-bottom: 2rem !important;

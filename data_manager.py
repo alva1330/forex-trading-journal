@@ -130,6 +130,7 @@ def load_trades(account_name="Sheet1"):
             image_path as 'Image'
         FROM trades 
         WHERE account_name = ?
+        ORDER BY id ASC
     """
     df = pd.read_sql_query(query, conn, params=(account_name,))
     conn.close()

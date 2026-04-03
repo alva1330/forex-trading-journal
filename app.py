@@ -79,6 +79,79 @@ def show_trade_dialog(account_name):
             st.success("OPEN POSITION LOGGED" if is_open else "TRADE FINALIZED")
             st.rerun()
 
+@st.dialog("EDIT TRADE", width="small")
+def show_edit_dialog(t_data, edit_idx):
+    with st.form(f"edit_form_dialog_{edit_idx}"):
+        e_pair = st.text_input("Pair", value=t_data["Pair"])
+        e_action = st.selectbox("Action", ["Buy", "Sell"], index=0 if t_data["Type"] == "Buy" else 1)
+        
+        c1, c2 = st.columns(2)
+        e_entry = c1.number_input("Entry", value=float(t_data["Entry"]), format="%.5f")
+        
+        # Handle potentially empty exit price
+        exit_val = float(t_data["Exit"]) if pd.notna(t_data["Exit"]) and t_data["Exit"] != 0 else 0.0
+        e_exit = c2.number_input("Exit", value=exit_val, format="%.5f", help="Set to 0.0 to keep OPEN.")
+        
+        e_lot = st.number_input("Lots", value=float(t_data["Lot Size"]))
+        
+        e_entry_date = st.text_input("Entry Date", value=t_data["Entry Date"])
+        e_exit_date = st.text_input("Exit Date", value=str(t_data["Exit Date"]) if pd.notna(t_data["Exit Date"]) else "")
+        
+        e_notes = st.text_area("Notes", value=t_data["Notes"] if pd.notna(t_data["Notes"]) else "")
+        e_img = st.file_uploader("Update Screenshot", type=['png', 'jpg', 'jpeg'], key=f"edit_img_dialog_{edit_idx}")
+        
+        if st.form_submit_button("SAVE CHANGES", use_container_width=True):
+            is_closing = e_exit != 0.0 and (pd.isna(t_data["Exit"]) or t_data["Exit"] == 0)
+            
+            new_pips = 0.0
+            new_profit = 0.0
+            if e_exit != 0.0:
+                new_pips = calculate_pips(e_pair, e_entry, e_exit, e_action)
+                new_profit = calculate_profit(new_pips, e_lot)
+            
+            update_fields = {
+                "Pair": e_pair.upper(), 
+                "Type": e_action.capitalize(), 
+                "Entry": e_entry, 
+                "Exit": None if e_exit == 0.0 else e_exit, 
+                "Lot Size": e_lot, 
+                "Pips": new_pips, 
+                "Profit": new_profit,
+                "Entry Date": e_entry_date,
+                "Notes": e_notes
+            }
+            
+            # If finalizing an open trade, set exit date to now unless manually edited
+            if is_closing and not e_exit_date:
+                update_fields["Exit Date"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            elif e_exit_date:
+                update_fields["Exit Date"] = e_exit_date
+            
+            if e_img:
+                os.makedirs("screenshots", exist_ok=True)
+                file_ext = e_img.name.split('.')[-1]
+                file_name = f"update_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:4]}.{file_ext}"
+                img_path = os.path.join("screenshots", file_name)
+                with open(img_path, "wb") as f:
+                    f.write(e_img.getbuffer())
+                update_fields["Image"] = img_path
+            
+            update_trade(st.session_state.active_account, edit_idx, update_fields)
+            st.success("UPDATED" if not is_closing else "POSITION CLOSED")
+            st.rerun()
+
+@st.dialog("DELETE TRADE", width="small")
+def show_delete_dialog(t_data, edit_idx):
+    st.warning(f"Are you sure you want to delete this trade: **{t_data['Pair']}** on **{t_data['Entry Date']}**?")
+    st.info("This action cannot be undone.")
+    c1, c2 = st.columns(2)
+    if c1.button("CANCEL", use_container_width=True):
+        st.rerun()
+    if c2.button("DELETE PERMANENTLY", type="primary", use_container_width=True):
+        delete_trade(st.session_state.active_account, edit_idx)
+        st.success("TRADE DELETED")
+        st.rerun()
+
 # --- Data Initialization ---
 if "accounts" not in st.session_state:
     st.session_state.accounts = list_accounts()
@@ -88,6 +161,9 @@ if "active_account" not in st.session_state:
 
 if "starting_balance" not in st.session_state:
     st.session_state.starting_balance = get_starting_balance(st.session_state.active_account)
+
+if "log_page" not in st.session_state:
+    st.session_state.log_page = 0
 
 # --- Sidebar Data Fetch ---
 df = load_trades(st.session_state.active_account)
@@ -131,76 +207,7 @@ st.sidebar.markdown("---")
 
 # Quick Actions (Sidebar Management Only)
 # LOG NEW TRADE REMOVED FROM SIDEBAR PER REQUEST
-
-with st.sidebar.expander("📝 EDIT / DELETE"):
-    if not df.empty:
-        trade_options = [f"{i}: {row['Pair']} (E: {row['Entry Date']})" for i, row in df.iterrows()]
-        trade_options.reverse()
-        selected_option = st.selectbox("SELECT TRADE", trade_options)
-        edit_idx = int(selected_option.split(":")[0])
-        t_data = df.iloc[edit_idx]
-        
-        with st.form(f"edit_form_{edit_idx}"):
-            e_pair = st.text_input("Pair", value=t_data["Pair"])
-            e_action = st.selectbox("Action", ["Buy", "Sell"], index=0 if t_data["Type"] == "Buy" else 1)
-            
-            c1, c2 = st.columns(2)
-            e_entry = c1.number_input("Entry", value=float(t_data["Entry"]), format="%.5f")
-            
-            # Handle potentially empty exit price
-            exit_val = float(t_data["Exit"]) if pd.notna(t_data["Exit"]) else 0.0
-            e_exit = c2.number_input("Exit", value=exit_val, format="%.5f", help="Set to 0.0 to keep OPEN.")
-            
-            e_lot = st.number_input("Lots", value=float(t_data["Lot Size"]))
-            
-            e_entry_date = st.text_input("Entry Date", value=t_data["Entry Date"])
-            e_exit_date = st.text_input("Exit Date", value=str(t_data["Exit Date"]) if pd.notna(t_data["Exit Date"]) else "")
-            
-            e_img = st.file_uploader("Update Screenshot", type=['png', 'jpg', 'jpeg'], key=f"edit_img_{edit_idx}")
-            
-            if st.form_submit_button("UPDATE"):
-                is_closing = e_exit != 0.0 and (pd.isna(t_data["Exit"]) or t_data["Exit"] == 0)
-                
-                new_pips = 0.0
-                new_profit = 0.0
-                if e_exit != 0.0:
-                    new_pips = calculate_pips(e_pair, e_entry, e_exit, e_action)
-                    new_profit = calculate_profit(new_pips, e_lot)
-                
-                update_fields = {
-                    "Pair": e_pair.upper(), 
-                    "Type": e_action.capitalize(), 
-                    "Entry": e_entry, 
-                    "Exit": None if e_exit == 0.0 else e_exit, 
-                    "Lot Size": e_lot, 
-                    "Pips": new_pips, 
-                    "Profit": new_profit,
-                    "Entry Date": e_entry_date
-                }
-                
-                # If finalizing an open trade, set exit date to now unless manually edited
-                if is_closing and not e_exit_date:
-                    update_fields["Exit Date"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                elif e_exit_date:
-                    update_fields["Exit Date"] = e_exit_date
-                
-                if e_img:
-                    os.makedirs("screenshots", exist_ok=True)
-                    file_ext = e_img.name.split('.')[-1]
-                    file_name = f"update_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:4]}.{file_ext}"
-                    img_path = os.path.join("screenshots", file_name)
-                    with open(img_path, "wb") as f:
-                        f.write(e_img.getbuffer())
-                    update_fields["Image"] = img_path
-                
-                update_trade(st.session_state.active_account, edit_idx, update_fields)
-                st.success("UPDATED" if not is_closing else "POSITION CLOSED")
-                st.rerun()
-        
-        if st.checkbox("Check to Enable Delete"):
-            if st.button("DELETE PERMANENTLY", type="primary"):
-                delete_trade(st.session_state.active_account, edit_idx)
-                st.rerun()
+# EDIT / DELETE REMOVED AND MOVED TO LOG PER REQUEST
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("---")
@@ -422,17 +429,80 @@ if search_col2.button("➕ NEW TRADE", use_container_width=True):
 
 if not df.empty:
     filtered_df = df[df["Pair"].str.contains(search_term) | df["Type"].str.contains(search_term)] if search_term else df
-    display_df = filtered_df.sort_values(by="Entry Date", ascending=False).head(10).copy()
     
-    # Format Profit for display
-    display_df['Status'] = display_df.apply(lambda x: f"${x['Profit']:,.2f}" if pd.notna(x['Exit']) and x['Exit'] != 0 else "🟢 OPEN", axis=1)
+    # Pagination Setup
+    PAGE_SIZE = 10
+    total_trades = len(filtered_df)
+    max_pages = max(1, (total_trades + PAGE_SIZE - 1) // PAGE_SIZE)
     
-    # Render table (excluding the raw Image path for clean look)
-    st.dataframe(
-        display_df[["Entry Date", "Exit Date", "Pair", "Type", "Entry", "Exit", "Status"]], 
-        use_container_width=True,
-        hide_index=True
-    )
+    if st.session_state.log_page >= max_pages:
+        st.session_state.log_page = max_pages - 1
+    
+    start_idx = st.session_state.log_page * PAGE_SIZE
+    end_idx = min(start_idx + PAGE_SIZE, total_trades)
+    
+    # Sort and slice for display
+    display_df = filtered_df.sort_values(by="Entry Date", ascending=False)
+    page_df = display_df.iloc[start_idx:end_idx].copy()
+    
+    # Custom Table Header
+    h_col1, h_col2, h_col3, h_col4, h_col5, h_col6, h_col7 = st.columns([1.5, 1.5, 1, 1, 1, 1.2, 1.5])
+    h_col1.markdown("**DATE / TIME**")
+    h_col2.markdown("**PAIR**")
+    h_col3.markdown("**TYPE**")
+    h_col4.markdown("**ENTRY**")
+    h_col5.markdown("**EXIT**")
+    h_col6.markdown("**PROFIT**")
+    h_col7.markdown("**ACTIONS**")
+    st.markdown("<hr style='margin: 5px 0; opacity: 0.1;'>", unsafe_allow_html=True)
+    
+    # Render Rows
+    for idx, row in page_df.iterrows():
+        r_col1, r_col2, r_col3, r_col4, r_col5, r_col6, r_col7 = st.columns([1.5, 1.5, 1, 1, 1, 1.2, 1.5])
+        
+        # Format date for cleaner look
+        dt_str = row["Entry Date"].split(" ")[0] if " " in str(row["Entry Date"]) else str(row["Entry Date"])
+        r_col1.write(dt_str)
+        
+        r_col2.write(f"**{row['Pair']}**")
+        
+        # Type Badge
+        type_color = "var(--primary)" if row["Type"] == "Buy" else "var(--secondary)"
+        r_col3.markdown(f"<span style='color: {type_color}; font-weight: 700;'>{row['Type']}</span>", unsafe_allow_html=True)
+        
+        r_col4.write(f"{row['Entry']:.5f}")
+        exit_val = f"{row['Exit']:.5f}" if pd.notna(row['Exit']) and row['Exit'] != 0 else "---"
+        r_col5.write(exit_val)
+        
+        # Profit Status
+        if pd.notna(row['Exit']) and row['Exit'] != 0:
+            p_color = "metric-pos" if row['Profit'] >= 0 else "metric-neg"
+            r_col6.markdown(f"<span class='{p_color}' style='font-weight: 600;'>${row['Profit']:,.2f}</span>", unsafe_allow_html=True)
+        else:
+            r_col6.markdown("<span style='color: #fbbf24; font-weight: 600;'>🟢 OPEN</span>", unsafe_allow_html=True)
+            
+        # Action Buttons
+        btn_col1, btn_col2 = r_col7.columns(2)
+        if btn_col1.button("📝", key=f"edit_btn_{idx}", help="Edit Trade", use_container_width=True):
+            show_edit_dialog(row, idx)
+        if btn_col2.button("🗑️", key=f"del_btn_{idx}", help="Delete Trade", use_container_width=True):
+            show_delete_dialog(row, idx)
+        
+        st.markdown("<hr style='margin: 5px 0; opacity: 0.05;'>", unsafe_allow_html=True)
+
+    # Pagination Controls
+    st.markdown("<br>", unsafe_allow_html=True)
+    p_col1, p_col2, p_col3 = st.columns([1, 2, 1])
+    with p_col1:
+        if st.button("PREVIOUS", disabled=st.session_state.log_page == 0, use_container_width=True):
+            st.session_state.log_page -= 1
+            st.rerun()
+    with p_col2:
+        st.markdown(f"<div style='text-align: center; color: var(--text-dim); padding-top: 5px;'>Page {st.session_state.log_page + 1} of {max_pages}</div>", unsafe_allow_html=True)
+    with p_col3:
+        if st.button("NEXT", disabled=st.session_state.log_page >= max_pages - 1, use_container_width=True):
+            st.session_state.log_page += 1
+            st.rerun()
     
     # 🖼️ Screenshot Viewer Section
     st.markdown("---")

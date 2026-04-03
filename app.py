@@ -276,7 +276,8 @@ else:
 st.markdown("### Recent Trade Log")
 st.markdown('<div class="lumina-card">', unsafe_allow_html=True)
 search_col1, search_col2 = st.columns([3, 1])
-search_term = search_col1.text_input("Search pairs or type...", "", placeholder="FILTER TRADES...").upper()
+# Using label_visibility="collapsed" ensures perfect vertical alignment with the button
+search_term = search_col1.text_input("Search", "", placeholder="FILTER TRADES...", label_visibility="collapsed").upper()
 if search_col2.button("➕ NEW TRADE", use_container_width=True):
     show_trade_dialog(st.session_state.active_account)
 

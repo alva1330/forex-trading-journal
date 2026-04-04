@@ -16,11 +16,34 @@ st.set_page_config(
 )
 
 # Injection of custom CSS
-def local_css(file_name):
-    with open(file_name) as f:
+def apply_theme():
+    if "theme" not in st.session_state:
+        st.session_state.theme = "Dark"
+        
+    theme_css = ""
+    if st.session_state.theme == "Light":
+        theme_css = """
+        <style>
+        :root {
+            --bg-main: #f8fafc;
+            --sidebar-bg: #f1f5f9;
+            --card-bg: #ffffff;
+            --card-border: rgba(0, 0, 0, 0.1);
+            --text-dim: #64748b;
+            --text-main: #0f172a;
+            --hover-glow: rgba(16, 185, 129, 0.2);
+        }
+        [data-testid="stSidebar"] { border-right: 1px solid rgba(0,0,0,0.1) !important; }
+        .stDataFrame { border: 1px solid rgba(0,0,0,0.1) !important; }
+        </style>
+        """
+    
+    with open("styles.css") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+    if theme_css:
+        st.markdown(theme_css, unsafe_allow_html=True)
 
-local_css("styles.css")
+apply_theme()
 
 # --- UI Components (Dialogs) ---
 @st.dialog("LOG NEW TRADE", width="small")
@@ -189,6 +212,15 @@ st.markdown("<br>", unsafe_allow_html=True)
 # --- Sidebar Navigation ---
 st.sidebar.markdown("### 🧭 NAVIGATION")
 
+# Theme Toggle
+t1, t2 = st.sidebar.columns([3, 1])
+t1.markdown(f"**MODE: {st.session_state.theme.upper()}**")
+if t2.button("🌓", use_container_width=True):
+    st.session_state.theme = "Light" if st.session_state.theme == "Dark" else "Dark"
+    st.rerun()
+
+st.sidebar.markdown("<br>", unsafe_allow_html=True)
+
 # Account Selection
 accounts = st.session_state.accounts
 try:
@@ -345,6 +377,13 @@ if not closed_df.empty:
     line_color = "#10b981" if current_bal >= start_bal else "#ef4444"
     fill_color = "rgba(16, 185, 129, 0.05)" if current_bal >= start_bal else "rgba(239, 68, 68, 0.05)"
     
+    # Theme-Aware Chart Colors
+    is_dark = st.session_state.theme == "Dark"
+    chart_text = "#cbd5e1" if is_dark else "#475569"
+    chart_grid = "rgba(255,255,255,0.05)" if is_dark else "rgba(0,0,0,0.05)"
+    baseline_color = "rgba(255,255,255,0.15)" if is_dark else "rgba(0,0,0,0.2)"
+    marker_border = "white" if is_dark else "#f8fafc"
+    
     with st.container():
         st.markdown('<div class="lumina-card">', unsafe_allow_html=True)
         import plotly.graph_objects as go
@@ -358,7 +397,7 @@ if not closed_df.empty:
             mode='lines+markers',
             name='Account Balance',
             line=dict(color=line_color, width=3, shape='spline', smoothing=1.3, dash='dash'),
-            marker=dict(size=8, color=line_color, symbol='circle', line=dict(color="white", width=1)),
+            marker=dict(size=8, color=line_color, symbol='circle', line=dict(color=marker_border, width=1)),
             fill='tozeroy', 
             fillcolor=fill_color,
             hovertemplate="<b>Date:</b> %{x}<br><b>Balance:</b> $%{y:,.2f}<extra></extra>"
@@ -368,7 +407,7 @@ if not closed_df.empty:
         fig_growth.add_hline(
             y=start_bal, 
             line_dash="dot", 
-            line_color="rgba(255,255,255,0.15)",
+            line_color=baseline_color,
             annotation_text="STARTING POINT", 
             annotation_position="bottom right"
         )
@@ -379,17 +418,17 @@ if not closed_df.empty:
             margin=dict(l=60, r=20, t=20, b=30), # Increased margins for labels
             xaxis=dict(
                 showgrid=True, 
-                gridcolor="rgba(255,255,255,0.05)", 
+                gridcolor=chart_grid, 
                 title=None, 
-                color="#cbd5e1", # Brighter slate
+                color=chart_text, 
                 tickfont=dict(size=10),
                 tickformat="%b %d"
             ),
             yaxis=dict(
                 showgrid=True, 
-                gridcolor="rgba(255,255,255,0.05)", 
+                gridcolor=chart_grid, 
                 title=None, 
-                color="#cbd5e1", # Brighter slate
+                color=chart_text, 
                 tickfont=dict(size=10),
                 tickprefix="$",
                 tickformat=",."

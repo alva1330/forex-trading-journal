@@ -28,11 +28,16 @@ header { background: transparent !important; }
 :root {
     --primary: #10b981;      /* Emerald */
     --secondary: #ef4444;    /* Rose Red */
+    
+    /* Dynamic Theme Variables (Dark Default) */
     --bg-main: #0a0c0c;
+    --sidebar-bg: #0d1111;
     --card-bg: #111616;
     --card-border: rgba(255, 255, 255, 0.05);
     --text-dim: #94a3b8;
     --text-main: #f8fafc;
+    --hover-glow: rgba(16, 185, 129, 0.4);
+    --scrollbar-thumb: #2d3748;
 }
 
 /* --- App Container Overrides --- */
